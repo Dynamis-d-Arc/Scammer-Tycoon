@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#121115;font-family:'Outfit',sans-serif;color:#e8e6df}
+a{color:#d8f06a}a:hover{color:#f2ffc8}
+</style>
+</helmet>
+<div style="height:{{ rootH }};min-height:100vh;display:flex;flex-direction:column;background:#121115">
+<div id="kit-head" style="display:flex;align-items:center;gap:16px 24px;padding:12px 22px;border-bottom:1px solid #2a2930;flex-wrap:wrap">
+<div style="display:flex;flex-direction:column;gap:2px">
+<div style="font-size:17px;font-weight:600">Scam Den · Asset Kit</div>
+<div style="font-size:12px;color:#9a97a6">16 isometric pieces · 4 rotations · 2 styles</div>
+</div>
+<div style="display:flex;gap:4px;padding:4px;background:#1a191e;border:1px solid #2a2930;border-radius:8px">
+<sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="3">
+<div onClick="{{ tb.go }}" style="padding:7px 14px;border-radius:5px;font-size:14px;font-weight:500;cursor:pointer;background:{{ tb.bg }};color:{{ tb.col }}">{{ tb.lbl }}</div>
+</sc-for>
+</div>
+<div style="margin-left:auto;display:flex;gap:4px;padding:4px;background:#1a191e;border:1px solid #2a2930;border-radius:8px">
+<sc-for list="{{ styles }}" as="sb" hint-placeholder-count="2">
+<div onClick="{{ sb.go }}" style="padding:7px 14px;border-radius:5px;font-size:14px;font-weight:500;cursor:pointer;background:{{ sb.bg }};color:{{ sb.col }}">{{ sb.lbl }}</div>
+</sc-for>
+</div>
+</div>
+
+<sc-if value="{{ isRoom }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex:1;min-height:0;height:0">
+<div style="width:270px;flex:none;display:flex;flex-direction:column;border-right:1px solid #2a2930;background:#16151a">
+<div style="padding:16px 16px 8px;font-size:11px;letter-spacing:.14em;color:#9a97a6">FURNITURE</div>
+<div style="flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:6px;padding:0 12px 12px;scrollbar-color:#3a3940 transparent;scrollbar-width:thin">
+<sc-for list="{{ tray }}" as="it" hint-placeholder-count="10">
+<div onClick="{{ it.go }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid {{ it.bd }};border-radius:6px;cursor:pointer;background:#1a191e" style-hover="background:#222128">
+<div style="display:flex;flex-direction:column;gap:2px">
+<div style="font-size:14px;font-weight:500">{{ it.name }}</div>
+<div style="font-size:12px;color:#9a97a6">{{ it.lay }}</div>
+</div>
+<div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#9a97a6;padding:2px 6px;border:1px solid #2a2930;border-radius:4px">{{ it.fp }}</div>
+</div>
+</sc-for>
+</div>
+<div style="padding:14px 16px;border-top:1px solid #2a2930;display:flex;flex-direction:column;gap:10px">
+<sc-if value="{{ isPlacing }}" hint-placeholder-val="{{ false }}">
+<div style="font-size:15px;font-weight:600">Placing: {{ placingName }}</div>
+<div style="font-size:13px;color:#9a97a6;text-wrap:pretty">Click a tile to drop it. R rotates, Esc cancels.</div>
+<div style="display:flex;gap:6px">
+<div onClick="{{ rotate }}" style="flex:1;text-align:center;padding:8px;border-radius:5px;background:{{ acc }};color:{{ accInk }};font-size:13px;font-weight:600;cursor:pointer">Rotate · R</div>
+<div onClick="{{ cancel }}" style="flex:1;text-align:center;padding:8px;border-radius:5px;border:1px solid #2a2930;font-size:13px;cursor:pointer">Cancel · Esc</div>
+</div>
+</sc-if>
+<sc-if value="{{ hasSel }}" hint-placeholder-val="{{ false }}">
+<div style="font-size:15px;font-weight:600">{{ selName }}</div>
+<div style="font-size:13px;color:#9a97a6">{{ selMeta }}</div>
+<div style="display:flex;gap:6px">
+<div onClick="{{ rotate }}" style="flex:1;text-align:center;padding:8px;border-radius:5px;background:{{ acc }};color:{{ accInk }};font-size:13px;font-weight:600;cursor:pointer">Rotate · R</div>
+<div onClick="{{ move }}" style="flex:1;text-align:center;padding:8px;border-radius:5px;border:1px solid #2a2930;font-size:13px;cursor:pointer">Move · M</div>
+<div onClick="{{ del }}" style="flex:1;text-align:center;padding:8px;border-radius:5px;border:1px solid #2a2930;font-size:13px;cursor:pointer;color:#e86a4a">Delete</div>
+</div>
+</sc-if>
+<sc-if value="{{ idle }}" hint-placeholder-val="{{ true }}">
+<div style="font-size:13px;color:#9a97a6;text-wrap:pretty">Pick an item above, or click something in the room to select it. Monitors, laptops, phones and cans can go on desks.</div>
+</sc-if>
+</div>
+</div>
+<div onMouseLeave="{{ leave }}" style="flex:1;position:relative;overflow:hidden;background:{{ stageBg }}">
+<div style="position:absolute;left:50%;top:calc(50% + {{ roomOff }}px);width:0;height:0;transform:scale({{ roomSc }})">
+<div style="position:absolute;left:{{ rpl }}px;top:{{ rpl }}px;width:{{ rp }}px;height:{{ rp }}px;transform:rotateX(60deg) rotateZ(45deg);transform-style:preserve-3d">
+<sc-for list="{{ tiles }}" as="t" hint-placeholder-count="0">
+<div onMouseEnter="{{ t.en }}" onClick="{{ t.go }}" style="position:absolute;left:{{ t.l }}px;top:{{ t.tp }}px;width:48px;height:48px;transform:translateZ(2px);background:{{ t.bg }};box-shadow:inset 0 0 0 1px {{ t.bd }}"></div>
+</sc-for>
+<sc-for list="{{ items }}" as="it" hint-placeholder-count="0">
+<div onClick="{{ it.go }}" style="position:absolute;left:{{ it.l }}px;top:{{ it.tp }}px;width:{{ it.w }}px;height:{{ it.d }}px;transform-origin:50% 50%;transform:{{ it.tf }};transform-style:preserve-3d;pointer-events:{{ it.pe }};cursor:{{ it.cur }}">
+<sc-for list="{{ it.faces }}" as="f" hint-placeholder-count="0">
+<div style="position:absolute;left:{{ f.x }}px;top:{{ f.y }}px;width:{{ f.w }}px;height:{{ f.h }}px;transform-origin:0 0;transform:{{ f.t }};background:{{ f.bg }};box-shadow:{{ f.sh }};border-radius:{{ f.rad }}">
+<sc-if value="{{ f.term }}" hint-placeholder-val="{{ false }}"><div style="padding:6px 7px;font-family:'JetBrains Mono',monospace;font-size:6px;line-height:1.6;white-space:pre-line;color:{{ f.tc }}">{{ f.tx }}</div></sc-if>
+<sc-if value="{{ f.neon }}" hint-placeholder-val="{{ false }}"><div style="height:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;border:2px solid #ff4fd8;border-radius:8px;box-shadow:0 0 10px #ff4fd8,inset 0 0 8px rgba(255,79,216,.5);font-weight:700;font-size:17px;letter-spacing:.08em;color:#ffe0f8;text-shadow:0 0 5px #ff4fd8,0 0 14px #ff4fd8">{{ f.tx }}</div></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="position:absolute;left:20px;top:16px;font-size:12px;color:#9a97a6;font-family:'JetBrains Mono',monospace">{{ roomLabel }}</div>
+<sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;left:50%;bottom:24px;transform:translateX(-50%);padding:10px 16px;border-radius:6px;background:rgba(14,13,16,.9);border:1px solid #3a3940;font-size:14px">{{ toast }}</div>
+</sc-if>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isSheet }}" hint-placeholder-val="{{ false }}">
+<div style="padding:24px;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(640px,100%),1fr));gap:16px">
+<sc-for list="{{ cards }}" as="cd" hint-placeholder-count="6">
+<div style="display:flex;flex-direction:column;gap:12px;padding:16px;background:#1a191e;border:1px solid #2a2930;border-radius:8px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+<div style="display:flex;flex-direction:column;gap:2px">
+<div style="font-size:16px;font-weight:600">{{ cd.name }}</div>
+<div style="font-size:13px;color:#9a97a6">{{ cd.meta }}</div>
+</div>
+<div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#9a97a6">{{ cd.id }}</div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px">
+<sc-for list="{{ cd.thumbs }}" as="th" hint-placeholder-count="4">
+<div style="position:relative;width:140px;height:150px;background:#141317;border-radius:6px;overflow:hidden">
+<div style="position:absolute;left:70px;top:{{ th.py }}px;width:0;height:0;transform:scale({{ th.sc }})">
+<div style="position:absolute;left:{{ th.pl }}px;top:{{ th.pt }}px;width:{{ th.pw }}px;height:{{ th.pd }}px;transform:rotateX(60deg) rotateZ(45deg);transform-style:preserve-3d;background:repeating-linear-gradient(0deg,rgba(255,255,255,.1) 0 1px,transparent 1px 48px),repeating-linear-gradient(90deg,rgba(255,255,255,.1) 0 1px,transparent 1px 48px),rgba(255,255,255,.03)">
+<div style="position:absolute;left:{{ th.it.l }}px;top:{{ th.it.tp }}px;width:{{ th.it.w }}px;height:{{ th.it.d }}px;transform-origin:50% 50%;transform:{{ th.it.tf }};transform-style:preserve-3d">
+<sc-for list="{{ th.it.faces }}" as="f" hint-placeholder-count="0">
+<div style="position:absolute;left:{{ f.x }}px;top:{{ f.y }}px;width:{{ f.w }}px;height:{{ f.h }}px;transform-origin:0 0;transform:{{ f.t }};background:{{ f.bg }};box-shadow:{{ f.sh }};border-radius:{{ f.rad }}">
+<sc-if value="{{ f.term }}" hint-placeholder-val="{{ false }}"><div style="padding:6px 7px;font-family:'JetBrains Mono',monospace;font-size:6px;line-height:1.6;white-space:pre-line;color:{{ f.tc }}">{{ f.tx }}</div></sc-if>
+<sc-if value="{{ f.neon }}" hint-placeholder-val="{{ false }}"><div style="height:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;border:2px solid #ff4fd8;border-radius:8px;box-shadow:0 0 10px #ff4fd8,inset 0 0 8px rgba(255,79,216,.5);font-weight:700;font-size:17px;letter-spacing:.08em;color:#ffe0f8;text-shadow:0 0 5px #ff4fd8,0 0 14px #ff4fd8">{{ f.tx }}</div></sc-if>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+<div style="position:absolute;left:8px;bottom:6px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#9a97a6">{{ th.lbl }}</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isSprite }}" hint-placeholder-val="{{ false }}">
+<div style="padding:24px;display:flex;flex-direction:column;gap:20px">
+<div style="display:flex;flex-wrap:wrap;gap:28px;padding:16px 18px;background:#1a191e;border:1px solid #2a2930;border-radius:8px;font-size:13px;color:#c9c6d2">
+<div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:11px;letter-spacing:.14em;color:#9a97a6">SHEET</div><div>1280 × 5120 px · transparent</div></div>
+<div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:11px;letter-spacing:.14em;color:#9a97a6">SLICE</div><div>Grid by cell size · 320 × 320</div></div>
+<div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:11px;letter-spacing:.14em;color:#9a97a6">PIVOT</div><div>Custom (0.5, 0.35), the footprint centre</div></div>
+<div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:11px;letter-spacing:.14em;color:#9a97a6">PIXELS PER UNIT</div><div>64 · 1 tile = 64 × 32 px</div></div>
+<div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:11px;letter-spacing:.14em;color:#9a97a6">TILEMAP</div><div>Isometric · cell size (1, 0.5, 1)</div></div>
+<div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:11px;letter-spacing:.14em;color:#9a97a6">ORDER</div><div>Rows = items · columns = 0° 90° 180° 270°</div></div>
+</div>
+<div style="display:flex;gap:16px;align-items:flex-start">
+<div style="display:flex;flex-direction:column;width:170px;flex:none;padding-top:32px">
+<sc-for list="{{ rows }}" as="rw" hint-placeholder-count="0">
+<div style="height:320px;display:flex;flex-direction:column;justify-content:center;gap:4px">
+<div style="font-size:15px;font-weight:600">{{ rw.name }}</div>
+<div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#9a97a6">{{ rw.id }}</div>
+</div>
+</sc-for>
+</div>
+<div style="display:flex;flex-direction:column;gap:0">
+<div style="display:flex;height:32px;align-items:center">
+<div style="width:320px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:12px;color:#9a97a6">0°</div>
+<div style="width:320px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:12px;color:#9a97a6">90°</div>
+<div style="width:320px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:12px;color:#9a97a6">180°</div>
+<div style="width:320px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:12px;color:#9a97a6">270°</div>
+</div>
+<div style="background:repeating-conic-gradient(#1c1b20 0 25%,#16151a 0 50%) 0 0/24px 24px;outline:1px solid #2a2930">
+<div id="sprite-sheet" style="width:1280px;display:flex;flex-direction:column">
+<sc-for list="{{ rows }}" as="rw" hint-placeholder-count="0">
+<div style="display:flex;height:320px">
+<sc-for list="{{ rw.cells }}" as="th" hint-placeholder-count="0">
+<div style="position:relative;width:320px;height:320px">
+<div style="position:absolute;left:160px;top:208px;width:0;height:0;transform:scale(0.9428)">
+<div style="position:absolute;left:{{ th.pl }}px;top:{{ th.pt }}px;width:{{ th.pw }}px;height:{{ th.pd }}px;transform:rotateX(60deg) rotateZ(45deg);transform-style:preserve-3d">
+<div style="position:absolute;left:{{ th.it.l }}px;top:{{ th.it.tp }}px;width:{{ th.it.w }}px;height:{{ th.it.d }}px;transform-origin:50% 50%;transform:{{ th.it.tf }};transform-style:preserve-3d">
+<sc-for list="{{ th.it.faces }}" as="f" hint-placeholder-count="0">
+<div style="position:absolute;left:{{ f.x }}px;top:{{ f.y }}px;width:{{ f.w }}px;height:{{ f.h }}px;transform-origin:0 0;transform:{{ f.t }};background:{{ f.bg }};box-shadow:{{ f.sh }};border-radius:{{ f.rad }}">
+<sc-if value="{{ f.term }}" hint-placeholder-val="{{ false }}"><div style="padding:6px 7px;font-family:'JetBrains Mono',monospace;font-size:6px;line-height:1.6;white-space:pre-line;color:{{ f.tc }}">{{ f.tx }}</div></sc-if>
+<sc-if value="{{ f.neon }}" hint-placeholder-val="{{ false }}"><div style="height:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;border:2px solid #ff4fd8;border-radius:8px;box-shadow:0 0 10px #ff4fd8,inset 0 0 8px rgba(255,79,216,.5);font-weight:700;font-size:17px;letter-spacing:.08em;color:#ffe0f8;text-shadow:0 0 5px #ff4fd8,0 0 14px #ff4fd8">{{ f.tx }}</div></sc-if>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showGrid&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;roomSize&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:10,&quot;min&quot;:10,&quot;max&quot;:16,&quot;step&quot;:1,&quot;unit&quot;:&quot;tiles&quot;,&quot;tsType&quot;:&quot;number&quot;}}">
+class Component extends DCLogic {
+  state = { style: 'a', view: 'room', placed: this.initial(), placing: null, hover: null, sel: null, toast: '', nid: 100 };
+  LAY = { floor: 'Floor', surface: 'Floor or desk', wall: 'Wall', decal: 'Rug layer', tile: 'Room tile' };
+  _defs = {}; _faces = {};
+  n() { return Math.max(10, Math.min(16, this.props.roomSize ?? 10)); }
+  initial() {
+    return [
+      { id: 1, k: 'rug', cx: 3, cy: 4, r: 0, z: 0 }, { id: 2, k: 'desk', cx: 3, cy: 0, r: 0, z: 0 },
+      { id: 3, k: 'monitor', cx: 4, cy: 0, r: 0, z: 84 }, { id: 4, k: 'laptop', cx: 4, cy: 1, r: 0, z: 84 },
+      { id: 5, k: 'phones', cx: 3, cy: 1, r: 0, z: 84 }, { id: 6, k: 'cans', cx: 3, cy: 0, r: 0, z: 84 },
+      { id: 7, k: 'chair', cx: 4, cy: 2, r: 0, z: 0 }, { id: 8, k: 'fridge', cx: 7, cy: 0, r: 0, z: 0 },
+      { id: 9, k: 'board', cx: 0, cy: 2, r: 3, z: 0 }, { id: 10, k: 'light', cx: 1, cy: 0, r: 0, z: 0 },
+      { id: 11, k: 'bed', cx: 0, cy: 5, r: 0, z: 0 }, { id: 12, k: 'stash', cx: 2, cy: 7, r: 0, z: 0 },
+      { id: 13, k: 'pizza', cx: 7, cy: 7, r: 0, z: 0 }, { id: 14, k: 'trash', cx: 1, cy: 1, r: 0, z: 0 },
+      { id: 15, k: 'cans', cx: 8, cy: 3, r: 0, z: 0 }
+    ];
+  }
+  defs(S) {
+    if (this._defs[S]) return this._defs[S];
+    const A = S === 'a';
+    const B = (x, y, z, w, d, h, c, f, o) => ({ x, y, z, w, d, h, c, f: f || {}, ...(o || {}) });
+    const all = o => ({ s: o, e: o, w: o, n: o });
+    const can = A ? '#b6d64a' : '#ff4fd8';
+    const CR = 'repeating-linear-gradient(90deg,#3f5f8c 0 10px,#1e2f48 10px 14px)';
+    const stripe = 'linear-gradient(90deg,#1a1420 0 30%,#ff4fd8 30% 38%,#1a1420 38% 62%,#ff4fd8 62% 70%,#1a1420 70%)';
+    const list = [
+      { k: 'desk', name: 'Desk', fw: 3, fd: 2, layer: 'floor', surface: 84, boxes: A ? [
+        B(8, 10, 0, 58, 78, 76, '#3f5f8c', all(CR)), B(78, 10, 0, 58, 78, 76, '#3f5f8c', all(CR)),
+        B(0, 0, 76, 144, 96, 8, '#7a6248', { t: 'repeating-linear-gradient(90deg,#7a6248 0 22px,#735c43 22px 30px)' })
+      ] : [
+        B(6, 6, 0, 8, 84, 76, '#1a1422'), B(130, 6, 0, 8, 84, 76, '#1a1422'), B(14, 8, 30, 116, 6, 46, '#15101c'),
+        B(0, 0, 76, 144, 96, 8, '#17121f', all({ bg: '#ff4fd8', lit: 1, glow: '0 0 14px rgba(255,79,216,.6)' }))
+      ] },
+      { k: 'monitor', name: 'Monitor', fw: 2, fd: 1, layer: 'surface', boxes: [
+        B(30, 8, 0, 36, 24, 3, A ? '#1c1c1c' : '#15101c'), B(42, 12, 3, 12, 8, 24, '#222'),
+        B(6, 20, 24, 84, 7, 52, A ? '#262626' : '#1c1c22', { s: { bg: A ? '#0b150f' : '#140b1a', lit: 1, frame: '#111', glow: A ? '0 0 40px 6px rgba(127,224,176,.22)' : '0 0 40px 6px rgba(255,79,216,.28)', term: 1, tc: A ? '#7fe0b0' : '#ffc4f1', tx: A ? '> leads.db loaded\n> 3 replies pending\n> heat: ELEVATED' : 'LEADS ....... 3\nTRUST AVG ... 28%\nHEAT ........ HIGH' } })
+      ] },
+      { k: 'laptop', name: 'Laptop + keyboard', fw: 2, fd: 1, layer: 'surface', boxes: [
+        B(4, 22, 0, 48, 18, 3, A ? '#1c1c1c' : '#1d1726', { t: A ? 'repeating-linear-gradient(90deg,#262626 0 6px,#161616 6px 8px)' : 'repeating-linear-gradient(90deg,#251d30 0 6px,#120e18 6px 8px)', s: A ? undefined : { bg: '#4ff0ff', lit: 1 } }),
+        B(60, 20, 0, 32, 22, 2, '#2c2c2c'),
+        B(60, 17, 2, 32, 3, 24, '#2c2c2c', { s: { bg: A ? 'linear-gradient(#13212e,#0d1620)' : 'linear-gradient(#0b1520,#123040)', lit: 1, frame: '#222', glow: '0 0 20px 3px rgba(110,170,230,.25)' } })
+      ] },
+      { k: 'chair', name: A ? 'Office chair' : 'Gaming chair', fw: 2, fd: 2, layer: 'floor', boxes: A ? [
+        B(18, 18, 0, 60, 60, 5, '#222'), B(42, 42, 5, 12, 12, 34, '#444'), B(12, 10, 39, 72, 66, 9, '#3a3a3a'), B(12, 72, 48, 72, 9, 72, '#333')
+      ] : [
+        B(18, 18, 0, 60, 60, 5, '#111'), B(42, 42, 5, 12, 12, 32, '#333'), B(10, 8, 37, 76, 70, 11, '#1a1420', { t: stripe }), B(10, 74, 48, 76, 11, 96, '#1a1420', { s: stripe, n: stripe, t: '#ff4fd8' })
+      ] },
+      { k: 'phones', name: 'Burner phones', fw: 1, fd: 1, layer: 'surface', boxes: A ? [
+        B(6, 8, 0, 14, 26, 3, '#2a2a2a', { t: 'linear-gradient(#7fe0b0,#7fe0b0) 50% 25%/8px 7px no-repeat,#2a2a2a' }), B(26, 14, 0, 14, 26, 3, '#2a2a2a')
+      ] : [
+        B(4, 22, 0, 40, 14, 5, '#222'),
+        B(7, 26, 5, 9, 3, 16, '#111', { s: { bg: 'linear-gradient(#ff4fd8,#6a1f5c)', lit: 1 } }),
+        B(19.5, 26, 5, 9, 3, 16, '#111', { s: { bg: '#0f1a24', lit: 1 } }),
+        B(32, 26, 5, 9, 3, 16, '#111', { s: { bg: 'linear-gradient(#4ff0ff,#1b5560)', lit: 1 } })
+      ] },
+      { k: 'fridge', name: A ? 'Mini fridge' : 'Drinks fridge', fw: 1, fd: 1, layer: 'floor', boxes: A ? [
+        B(3, 3, 0, 42, 42, 74, '#bdb7a6', { s: 'linear-gradient(transparent 30%,#6e6a5e 30%,#6e6a5e 32%,transparent 32%),linear-gradient(90deg,transparent 76%,#7d786a 76%,#7d786a 86%,transparent 86%) 0 28px/100% 20px no-repeat,radial-gradient(circle at 20% 80%,rgba(80,60,30,.25),transparent 40%),#a9a392' }),
+        B(18, 18, 74, 9, 9, 16, can, { t: '#ccc' })
+      ] : [
+        B(3, 3, 0, 42, 42, 116, '#15151d', { s: { bg: 'radial-gradient(circle at 50% 65%,#ff4fd8 0 3px,transparent 4px) 4px 0/11px 24px,repeating-linear-gradient(0deg,#0b0b12 0 3px,rgba(79,240,255,.28) 3px 24px)', lit: 1, frame: '#1c1c26', glow: '0 0 24px rgba(79,240,255,.35)' } })
+      ] },
+      { k: 'stash', name: A ? 'Cash shoebox' : 'Safe', fw: 1, fd: 1, layer: 'floor', boxes: A ? [
+        B(6, 10, 0, 36, 26, 16, '#b5543a', { t: { bg: 'repeating-linear-gradient(90deg,#7fae6a 0 7px,#5f8f50 7px 9px)', frame: '#b5543a' } })
+      ] : [
+        B(3, 3, 0, 42, 42, 46, '#3a3348', { s: 'radial-gradient(circle,#4a4358 0 7px,#15111c 7px 9px,transparent 9px),linear-gradient(90deg,transparent 80%,#4ff0ff 80%,#4ff0ff 83%,transparent 83%),#3a3348' }),
+        B(10, 12, 46, 22, 12, 6, '#7fcf86', { s: 'repeating-linear-gradient(0deg,#5fa866 0 2px,#e8f2e0 2px 3px)' })
+      ] },
+      { k: 'board', name: A ? 'Corkboard' : 'Network board', fw: 3, fd: 1, layer: 'wall', boxes: A ? [
+        B(6, 0, 70, 132, 5, 84, '#5e4630', { s: { bg: 'linear-gradient(#ece6c8,#ece6c8) 14px 14px/34px 26px no-repeat,linear-gradient(#f0e08a,#f0e08a) 84px 20px/34px 26px no-repeat,linear-gradient(#e9e9e9,#e9e9e9) 52px 46px/38px 24px no-repeat,linear-gradient(14deg,transparent 48%,#c4423a 48%,#c4423a 50%,transparent 50%),radial-gradient(circle at 30% 30%,#9a7850,#7f6140)', frame: '#5e4630' } })
+      ] : [
+        B(6, 0, 60, 132, 3, 90, '#1a1422', { s: { bg: 'radial-gradient(circle at 25% 30%,#4ff0ff 0 4px,transparent 5px),radial-gradient(circle at 70% 50%,#4ff0ff 0 4px,transparent 5px),radial-gradient(circle at 45% 78%,#ff4fd8 0 4px,transparent 5px),linear-gradient(15deg,transparent 49%,rgba(79,240,255,.7) 49%,rgba(79,240,255,.7) 50%,transparent 50%),linear-gradient(-35deg,transparent 49%,rgba(255,79,216,.7) 49%,rgba(255,79,216,.7) 50%,transparent 50%),rgba(79,240,255,.07)', lit: 1, frame: 'rgba(79,240,255,.6)', glow: '0 0 18px rgba(79,240,255,.3)' } })
+      ] },
+      { k: 'bed', name: A ? 'Mattress' : 'Platform bed', fw: 2, fd: 4, layer: 'floor', boxes: A ? [
+        B(2, 2, 0, 92, 188, 20, '#7b786a'), B(10, 8, 20, 76, 36, 8, '#9a9585', { t: { bg: '#9a9585', rad: '8px' } }),
+        B(2, 78, 20, 92, 112, 4, '#4b5a4a', { t: 'repeating-linear-gradient(45deg,#4b5a4a 0 12px,#445243 12px 24px)' })
+      ] : [
+        B(0, 0, 0, 96, 192, 12, '#1d1726', all({ bg: 'linear-gradient(#1d1726 55%,#4ff0ff 55%)', lit: 1, glow: '0 4px 14px rgba(79,240,255,.35)' })),
+        B(4, 4, 12, 88, 184, 14, '#3b2f52'), B(12, 10, 26, 72, 30, 8, '#5a4a78'),
+        B(4, 70, 26, 88, 118, 4, '#2b2238', { t: 'linear-gradient(90deg,#2b2238 0 46%,#ff4fd8 46% 54%,#2b2238 54%)' })
+      ] },
+      { k: 'pizza', name: 'Pizza boxes', fw: 1, fd: 1, layer: 'floor', boxes: [
+        B(4, 4, 0, 40, 40, 6, '#c8a46a'), B(6, 2, 6, 40, 40, 6, '#c8a46a'),
+        B(2, 6, 12, 40, 40, 6, '#c8a46a', { t: 'radial-gradient(circle at 60% 40%,rgba(120,60,20,.35),transparent 30%),#c8a46a' })
+      ] },
+      { k: 'cans', name: 'Energy cans', fw: 1, fd: 1, layer: 'surface', boxes: [
+        B(10, 8, 0, 9, 9, 16, can, { t: '#ccc' }), B(25, 14, 0, 9, 9, 16, can, { t: '#ccc' }), B(12, 28, 0, 16, 9, 9, can, { e: '#ccc', w: '#ccc' })
+      ] },
+      { k: 'trash', name: 'Trash bag', fw: 1, fd: 1, layer: 'floor', boxes: [
+        B(5, 5, 0, 38, 38, 32, A ? '#262626' : '#1a1620', { t: { bg: A ? '#262626' : '#1a1620', rad: '12px' } }), B(18, 18, 32, 12, 12, 6, A ? '#262626' : '#1a1620')
+      ] },
+      { k: 'light', name: A ? 'Tube light' : 'Neon sign', fw: 3, fd: 1, layer: 'wall', boxes: A ? [
+        B(12, 0, 186, 120, 6, 6, '#3a382f'),
+        B(14, 4, 178, 116, 6, 6, '#f4ffd0', { ...all({ bg: '#f4ffd0', lit: 1, glow: '0 0 26px 8px rgba(216,240,106,.35)' }), t: { bg: '#f4ffd0', lit: 1 } })
+      ] : [
+        B(4, 0, 130, 136, 3, 44, '#1a1422', { s: { bg: 'transparent', lit: 1, neon: 1, tx: 'NO REFUNDS' } })
+      ] },
+      { k: 'rug', name: 'Rug', fw: 4, fd: 4, layer: 'decal', boxes: A ? [
+        B(8, 8, 0, 176, 176, 1, '#4a3f33', { t: { bg: 'radial-gradient(circle at 35% 60%,rgba(0,0,0,.25),transparent 30%),repeating-linear-gradient(0deg,#4a3f33 0 12px,#433829 12px 24px)', frame: '#5a4c3c', lit: 1 } }, { flat: 1 })
+      ] : [
+        B(6, 6, 0, 180, 180, 1, '#2b2238', { t: { bg: 'radial-gradient(circle,#33284a,#2b2238 70%)', rad: '50%', frame: '#ff4fd8', glow: '0 0 20px rgba(255,79,216,.45)', lit: 1 } }, { flat: 1 })
+      ] },
+      { k: 'floorTile', name: 'Floor tile', fw: 1, fd: 1, layer: 'tile', kit: 1, boxes: [
+        B(0, 0, -10, 48, 48, 10, A ? '#2a2923' : '#130f19', { t: { bg: A ? 'linear-gradient(135deg,rgba(0,0,0,.12),transparent),#3a382f' : '#1a1422', frame: A ? 'rgba(0,0,0,.18)' : 'rgba(255,79,216,.18)', lit: 1 } })
+      ] },
+      { k: 'wallSeg', name: 'Wall segment', fw: 1, fd: 1, layer: 'tile', kit: 1, boxes: [
+        B(0, 0, 0, 48, 8, 180, A ? '#25241e' : '#1a1422', { s: { bg: A ? 'linear-gradient(#2c2b25,#47453b 55%,#3d3b33)' : 'linear-gradient(#ff4fd8 0 4px,#1c1526 4px,#2b2238 70%,#241c30)', lit: 1 } })
+      ] }
+    ];
+    this._defs[S] = list;
+    return list;
+  }
+  shell(S, N) {
+    const A = S === 'a', n = N * 48;
+    const B = (x, y, z, w, d, h, c, f) => ({ x, y, z, w, d, h, c, f: f || {} });
+    const floor = A
+      ? 'repeating-linear-gradient(0deg,transparent 0 46px,rgba(0,0,0,.22) 46px 48px) 8px 8px,repeating-linear-gradient(90deg,transparent 0 46px,rgba(0,0,0,.22) 46px 48px) 8px 8px,radial-gradient(circle at 30% 70%,rgba(0,0,0,.25),transparent 40%),#3a382f'
+      : 'repeating-linear-gradient(0deg,transparent 0 47px,rgba(255,79,216,.12) 47px 48px) 8px 8px,repeating-linear-gradient(90deg,transparent 0 47px,rgba(255,79,216,.12) 47px 48px) 8px 8px,#1a1422';
+    const north = A
+      ? 'linear-gradient(#5d5a4e,#5d5a4e) 0 8px/100% 7px no-repeat,repeating-linear-gradient(90deg,transparent 0 18px,#2a2924 18px 22px) 340px 34px/120px 48px no-repeat,linear-gradient(#0f1622,#1a2436) 340px 34px/120px 48px no-repeat,linear-gradient(#2c2b25,#47453b 55%,#3d3b33)'
+      : 'linear-gradient(#ff4fd8,#ff4fd8) 0 0/100% 4px no-repeat,linear-gradient(#1c1526,#2b2238 70%,#241c30)';
+    const west = A ? 'linear-gradient(#5d5a4e,#5d5a4e) 0 8px/100% 7px no-repeat,linear-gradient(#26251f,#3b3932 55%,#34322b)' : 'linear-gradient(#4ff0ff,#4ff0ff) 0 0/100% 4px no-repeat,linear-gradient(#18121f,#211a2c 70%,#1d1727)';
+    const cap = A ? '#25241e' : '#1a1422', edge = A ? '#1f1e19' : '#130f19';
+    return { k: 'shell' + N, fw: N, fd: N, boxes: [
+      B(-8, -8, -14, n + 8, n + 8, 14, edge, { t: { bg: floor, lit: 1 } }),
+      B(0, -8, 0, n, 8, 180, cap, { s: { bg: north, lit: 1 }, e: edge }),
+      B(-8, -8, 0, 8, n + 8, 180, cap, { e: { bg: west, lit: 1 }, s: edge })
+    ] };
+  }
+  def(k) { return this.defs(this.state.style).find(d => d.k === k); }
+  face(o, c, a, g) {
+    const f = typeof o === 'string' ? { bg: o } : (o || {});
+    const sh = [];
+    if (f.frame) sh.push(`inset 0 0 0 4px ${f.frame}`);
+    if (!f.lit && a) sh.push(`inset 0 0 0 999px rgba(0,0,0,${a})`);
+    if (f.glow) sh.push(f.glow);
+    return { ...g, bg: f.bg || c, sh: sh.join(',') || 'none', rad: f.rad || '0', term: !!f.term, neon: !!f.neon, tx: f.tx || '', tc: f.tc || '#fff' };
+  }
+  faces(def, r, S) {
+    const key = S + '|' + def.k + '|' + r;
+    if (this._faces[key]) return this._faces[key];
+    const out = [], SH = [0.34, 0.16];
+    def.boxes.forEach(b => {
+      const top = b.z + b.h;
+      out.push(this.face(b.f.t, b.c, 0, { x: b.x, y: b.y, w: b.w, h: b.d, t: `translateZ(${top}px)` }));
+      if (b.flat) return;
+      [['e', 0], ['s', 1], ['w', 2], ['n', 3]].forEach(([n, i]) => {
+        const wd = (i + r) % 4;
+        if (wd > 1) return;
+        const g = n === 'e' ? { x: b.x + b.w, y: b.y + b.d, w: b.d, h: b.h, t: `translateZ(${top}px) rotateZ(-90deg) rotateX(-90deg)` }
+          : n === 's' ? { x: b.x, y: b.y + b.d, w: b.w, h: b.h, t: `translateZ(${top}px) rotateX(-90deg)` }
+          : n === 'w' ? { x: b.x, y: b.y, w: b.d, h: b.h, t: `translateZ(${top}px) rotateZ(90deg) rotateX(-90deg)` }
+          : { x: b.x + b.w, y: b.y, w: b.w, h: b.h, t: `translateZ(${top}px) rotateZ(180deg) rotateX(-90deg)` };
+        out.push(this.face(b.f[n], b.c, SH[wd], g));
+      });
+    });
+    this._faces[key] = out;
+    return out;
+  }
+  fp(d, r) { return r % 2 ? [d.fd, d.fw] : [d.fw, d.fd]; }
+  renderItem(d, r, cx, cy, z, S) {
+    const T = 48, W = d.fw * T, D = d.fd * T, [wr, dr] = this.fp(d, r);
+    return { l: cx * T + (wr * T - W) / 2, tp: cy * T + (dr * T - D) / 2, w: W, d: D, tf: `translateZ(${z}px) rotateZ(${r * 90}deg)`, faces: this.faces(d, r, S) };
+  }
+  thumb(d, r, S) {
+    const [wr, dr] = this.fp(d, r);
+    return { pl: -wr * 24, pt: -dr * 24, pw: wr * 48, pd: dr * 48, it: this.renderItem(d, r, 0, 0, 0, S) };
+  }
+  cellsOf(p, d) {
+    const c = [];
+    if (d.layer === 'wall') { for (let i = 0; i < d.fw; i++) c.push(p.r === 0 ? [p.cx + i, 0] : [0, p.cy + i]); return c; }
+    const [w, h] = this.fp(d, p.r);
+    for (let i = 0; i < w; i++) for (let j = 0; j < h; j++) c.push([p.cx + i, p.cy + j]);
+    return c;
+  }
+  occ(ex) {
+    const o = { floor: {}, top: {}, wall: {}, decal: {} };
+    this.state.placed.forEach(p => {
+      if (p.id === ex) return;
+      const d = this.def(p.k);
+      this.cellsOf(p, d).forEach(([x, y]) => {
+        const k = x + ',' + y;
+        if (d.layer === 'wall') o.wall[p.r === 0 ? 'n' + x : 'w' + y] = p;
+        else if (d.layer === 'decal') o.decal[k] = p;
+        else if (d.layer === 'surface' && p.z > 0) o.top[k] = p;
+        else o.floor[k] = { p, d };
+      });
+    });
+    return o;
+  }
+  check(d, cx, cy, r, ex) {
+    const N = this.n(), o = this.occ(ex), K = c => c[0] + ',' + c[1];
+    if (d.layer === 'wall') {
+      let rr, cells = [];
+      if (cy === 0) { rr = 0; for (let i = 0; i < d.fw; i++) cells.push([cx + i, 0]); }
+      else if (cx === 0) { rr = 3; for (let i = 0; i < d.fw; i++) cells.push([0, cy + i]); }
+      else return { ok: false, r, z: 0, cells: [[cx, cy]], msg: 'Wall pieces snap to the back walls' };
+      const ok = cells.every(([x, y]) => x < N && y < N && !o.wall[rr === 0 ? 'n' + x : 'w' + y]);
+      return { ok, r: rr, z: 0, cells, msg: 'No room on that wall' };
+    }
+    const [w, h] = this.fp(d, r), cells = [];
+    for (let i = 0; i < w; i++) for (let j = 0; j < h; j++) cells.push([cx + i, cy + j]);
+    if (cx + w > N || cy + h > N) return { ok: false, r, z: 0, cells, msg: 'That doesn\'t fit in the room' };
+    if (d.layer === 'decal') return { ok: cells.every(c => !o.decal[K(c)]), r, z: 0, cells, msg: 'Rugs can\'t overlap' };
+    if (d.layer === 'floor') return { ok: cells.every(c => !o.floor[K(c)]), r, z: 0, cells, msg: 'Something is in the way' };
+    const und = cells.map(c => o.floor[K(c)]);
+    if (und.every(u => !u)) return { ok: true, r, z: 0, cells };
+    const f = und[0];
+    if (f && f.d.surface && und.every(u => u && u.p === f.p) && cells.every(c => !o.top[K(c)])) return { ok: true, r, z: f.d.surface, cells };
+    return { ok: false, r, z: 0, cells, msg: 'Needs clear floor or a clear spot on a desk' };
+  }
+  hasTop(p) {
+    const d = this.def(p.k);
+    if (!d.surface) return false;
+    const cs = new Set(this.cellsOf(p, d).map(c => c[0] + ',' + c[1]));
+    return this.state.placed.some(q => q.z > 0 && this.cellsOf(q, this.def(q.k)).some(c => cs.has(c[0] + ',' + c[1])));
+  }
+  say(msg) { this.setState({ toast: msg }); clearTimeout(this.tt); this.tt = setTimeout(() => this.setState({ toast: '' }), 2200); }
+  startPlace(k) { this.setState({ placing: { k, r: 0, fromId: null }, sel: null }); }
+  rotate() {
+    const s = this.state;
+    if (s.placing) return this.setState({ placing: { ...s.placing, r: (s.placing.r + 1) % 4 } });
+    const p = s.placed.find(q => q.id === s.sel); if (!p) return;
+    const d = this.def(p.k);
+    if (d.layer === 'wall') return this.say('Wall pieces turn to face the room on their own');
+    if (this.hasTop(p)) return this.say('Clear the desk first');
+    const c = this.check(d, p.cx, p.cy, (p.r + 1) % 4, p.id);
+    if (!c.ok) return this.say('Not enough room to rotate here');
+    this.setState({ placed: s.placed.map(q => q.id === p.id ? { ...q, r: c.r, z: c.z } : q) });
+  }
+  move() {
+    const s = this.state, p = s.placed.find(q => q.id === s.sel); if (!p) return;
+    if (this.hasTop(p)) return this.say('Clear the desk first');
+    this.setState({ placing: { k: p.k, r: p.r, fromId: p.id }, sel: null });
+  }
+  del() {
+    const s = this.state, p = s.placed.find(q => q.id === s.sel); if (!p) return;
+    if (this.hasTop(p)) return this.say('Clear the desk first');
+    this.setState({ placed: s.placed.filter(q => q.id !== p.id), sel: null });
+  }
+  cancel() { this.setState({ placing: null }); }
+  enter(x, y) { if (this.state.placing) this.setState({ hover: { x, y } }); }
+  tile(x, y) {
+    const s = this.state;
+    if (!s.placing) return this.setState({ sel: null });
+    const d = this.def(s.placing.k), c = this.check(d, x, y, s.placing.r, s.placing.fromId);
+    if (!c.ok) return this.say(c.msg || 'Can\'t place that there');
+    const it = { k: d.k, cx: x, cy: y, r: c.r, z: c.z }, fid = s.placing.fromId;
+    this.setState({
+      placed: fid ? s.placed.map(q => q.id === fid ? { ...q, ...it } : q) : [...s.placed, { id: s.nid, ...it }],
+      sel: fid || s.nid, nid: s.nid + 1, placing: null, hover: null
+    });
+  }
+  componentDidMount() {
+    this.kd = e => {
+      if (this.state.view !== 'room') return;
+      const k = e.key.toLowerCase();
+      if (k === 'r') this.rotate();
+      else if (k === 'm') this.move();
+      else if (k === 'escape') this.setState({ placing: null, sel: null });
+      else if (k === 'delete' || k === 'backspace') this.del();
+    };
+    window.addEventListener('keydown', this.kd);
+    this.rs = () => {
+      const hd = document.getElementById('kit-head'), hh = hd ? hd.offsetHeight : 66;
+      const f = Math.max(0.4, Math.min(1.3, (window.innerWidth - 270) / 760, (window.innerHeight - hh) / 580));
+      if (Math.abs(f - (this.state.fit || 0)) > 0.01) this.setState({ fit: f });
+    };
+    window.addEventListener('resize', this.rs);
+    this.rs();
+  }
+  componentWillUnmount() { window.removeEventListener('keydown', this.kd); window.removeEventListener('resize', this.rs); clearTimeout(this.tt); }
+  renderVals() {
+    const st = this.state, S = st.style, N = this.n(), T = 48, A = S === 'a';
+    const defs = this.defs(S), D = k => defs.find(d => d.k === k);
+    const acc = A ? '#d8f06a' : '#ff4fd8', accInk = A ? '#16150f' : '#1a0f1a';
+    const v = { acc, accInk, isRoom: st.view === 'room', isSheet: st.view === 'sheet', isSprite: st.view === 'sprite', rootH: st.view === 'room' ? '100vh' : 'auto' };
+    v.tabs = [['room', 'Room builder'], ['sheet', 'Asset sheet'], ['sprite', 'Sprite export']].map(([id, lbl]) => ({ lbl, go: () => this.setState({ view: id }), bg: st.view === id ? '#2c2b33' : 'transparent', col: st.view === id ? '#f2f0ea' : '#9a97a6' }));
+    v.styles = [['a', 'Basement'], ['b', 'Neon Den']].map(([id, lbl]) => ({ lbl, go: () => this.setState({ style: id }), bg: S === id ? acc : 'transparent', col: S === id ? accInk : '#9a97a6' }));
+    if (v.isRoom) {
+      const pl = st.placing, pdef = pl && D(pl.k), ex = pl && pl.fromId;
+      const chk = pl && st.hover ? this.check(pdef, st.hover.x, st.hover.y, pl.r, ex) : null;
+      const hl = {};
+      const sp = st.sel && st.placed.find(p => p.id === st.sel);
+      if (sp) this.cellsOf(sp, D(sp.k)).forEach(([x, y]) => hl[x + ',' + y] = A ? 'rgba(216,240,106,.28)' : 'rgba(255,79,216,.3)');
+      if (chk) chk.cells.forEach(([x, y]) => hl[x + ',' + y] = chk.ok ? 'rgba(127,224,176,.4)' : 'rgba(232,106,74,.5)');
+      const bd = (this.props.showGrid ?? true) ? 'rgba(255,255,255,.05)' : 'transparent';
+      v.tiles = [];
+      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) v.tiles.push({ l: x * T, tp: y * T, bg: hl[x + ',' + y] || 'transparent', bd, en: () => this.enter(x, y), go: () => this.tile(x, y) });
+      const pe = pl ? 'none' : 'auto', noop = () => {};
+      const sh = this.shell(S, N);
+      const items = [{ ...this.renderItem(sh, 0, 0, 0, 0, S), pe: 'none', cur: 'default', go: noop }];
+      st.placed.forEach(p => { if (p.id === ex) return; items.push({ ...this.renderItem(D(p.k), p.r, p.cx, p.cy, p.z, S), pe, cur: 'pointer', go: () => this.setState({ sel: p.id }) }); });
+      if (chk) items.push({ ...this.renderItem(pdef, chk.r, st.hover.x, st.hover.y, chk.z, S), pe: 'none', cur: 'default', go: noop });
+      v.items = items;
+      v.rp = N * T; v.rpl = -N * 24; v.roomSc = (st.fit || 1) * 10 / N; v.roomOff = Math.round(78 * (st.fit || 1));
+      v.stageBg = A ? 'radial-gradient(ellipse at 50% 45%,#24231d,#111110 75%)' : 'radial-gradient(ellipse at 50% 45%,#22192e,#0c0911 75%)';
+      v.roomLabel = `${N}×${N} room · ${st.placed.length} items`;
+      v.tray = defs.filter(d => !d.kit).map(d => ({ name: d.name, fp: `${d.fw}×${d.fd}`, lay: this.LAY[d.layer] + (d.surface ? ' · holds items' : ''), go: () => this.startPlace(d.k), bd: pl && pl.k === d.k && !pl.fromId ? acc : '#2a2930' }));
+      v.isPlacing = !!pl; v.placingName = pdef ? pdef.name : '';
+      v.hasSel = !pl && !!sp; v.selName = sp ? D(sp.k).name : '';
+      v.selMeta = sp ? `${this.LAY[D(sp.k).layer]} · ${['0°', '90°', '180°', '270°'][sp.r]}${sp.z ? ' · on desk' : ''}` : '';
+      v.idle = !pl && !sp;
+      v.leave = () => st.hover && this.setState({ hover: null });
+    }
+    if (v.isSheet) {
+      v.cards = defs.map(d => {
+        const ext = (d.fw + d.fd) * 48, hz = Math.max(...d.boxes.map(b => b.z + b.h));
+        const sc = Math.min(1, 124 / (ext * 0.7071), 128 / (ext * 0.3536 + hz * 0.866));
+        const py = 75 + (hz * 0.866 / 2) * sc;
+        return { name: d.name, id: d.k, meta: `${d.fw}×${d.fd} tiles · ${this.LAY[d.layer]}${d.surface ? ' · holds desk items' : ''}`,
+          thumbs: [0, 1, 2, 3].map(r => ({ lbl: ['0°', '90°', '180°', '270°'][r], sc, py, ...this.thumb(d, r, S) })) };
+      });
+    }
+    if (v.isSprite) v.rows = defs.map(d => ({ name: d.name, id: d.k, cells: [0, 1, 2, 3].map(r => this.thumb(d, r, S)) }));
+    v.rotate = () => this.rotate(); v.move = () => this.move(); v.del = () => this.del(); v.cancel = () => this.cancel();
+    v.toast = st.toast; v.hasToast = !!st.toast;
+    return v;
+  }
+}
+</script>
+</body>
+</html>
