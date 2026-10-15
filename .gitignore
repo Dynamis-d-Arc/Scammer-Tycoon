@@ -1,0 +1,26 @@
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+UserSettings/
+MemoryCaptures/
+Recordings/
+.vs/
+.idea/
+.DS_Store
+*.csproj
+*.sln
+*.slnx
+*.user
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+sysinfo.txt
+
+# Unity emergency scene backups stay local.
+Assets/_Recovery/
+Assets/_Recovery.meta
