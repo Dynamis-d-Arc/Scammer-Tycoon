@@ -1,0 +1,19 @@
+[
+  {
+    "asset": "Assets/Resources/PixelOffice/room_empty.png",
+    "mode": "built-in image_gen",
+    "prompt": "Use case: precise-object-edit. Edit target: supplied isometric pixel-art room sprite. Create an EMPTY architectural shell for this exact game room, preserving the camera, silhouette, canvas framing, floor plane, warm wood planks, dark brick foundation, two walls, pipes, doors, windows showing the nighttime city, and wall-mounted amber sconces. REMOVE every furnishing and all its cast shadows: sofa, bookshelves, cabinets, water cooler, bins, coffee table, rug, boxes, ALL plants including hanging/window plants, floor lamp, radiator, notice boards, wall posters. Reconstruct uninterrupted wood floor and bare plaster/brick wall behind removed objects. No leftover outlines or ghost shadows. Nothing on the floor. No furnishings of any kind. Keep the same detailed crisp handcrafted pixel art, colors and isometric angle. No text, no UI. Preserve transparent exterior alpha. Keep the whole room in frame, with its diamond floor corners and foundation aligned exactly as the reference. Output landscape 1774x887 if possible.",
+    "references": [
+      "/Users/bensontan/Desktop/tycoon/Assets/Resources/PixelOffice/room.png"
+    ]
+  },
+  {
+    "asset": "Assets/Resources/PixelOffice/furniture.png",
+    "mode": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Create a production TRANSPARENT furniture sprite atlas for the supplied pixel-art isometric office game. Images are STYLE/OBJECT references. 1536x1536 square canvas, EXACT uniform grid of FOUR columns and THREE rows (12 cells total, each 384 wide by 512 tall). One complete isolated object per cell, evenly spaced with generous transparent margins, each resting on the same baseline at 88% of its cell height. No grid lines, labels, text, background, floor patches, gradients, glow halos, or cast shadows. True alpha transparency all around and between objects. Orthographic 2:1 isometric view, crisp dark pixel outlines, detailed warm amber wood and navy shadows like the reference. Entire sprite inside its cell. Row 1 left-to-right: green two-seat sofa with two beige cushions; tall wooden bookshelf packed with colorful books and folders (no plant on top); glowing amber shaded floor lamp on a narrow dark stand; tall leafy green plant in terracotta pot. Row 2: low dark wooden coffee table with mug and tiny flower pot; walnut sideboard cabinet with drawers; flat rectangular burgundy Persian rug in isometric perspective (rug only); two stacked cardboard moving boxes. Row 3: navy metal filing cabinet (no plant); white water cooler with blue bottle; small dark open waste bin with crumpled paper; dark cast iron radiator. Match familiar objects from the supplied room. Same camera and lighting for every sprite. Do not include cars, boats, people, computers, room architecture or any extra sprites. Transparency is mandatory, not a checkerboard painted behind the sprites.",
+    "references": [
+      "/Users/bensontan/Desktop/tycoon/Assets/Resources/PixelOffice/room.png",
+      "/Users/bensontan/Desktop/tycoon/Assets/Resources/PixelOffice/props.png"
+    ]
+  }
+]
