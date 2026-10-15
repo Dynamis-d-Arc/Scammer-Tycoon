@@ -1,14 +1,10 @@
-repo: Dynamis-d-Arc/Scammer-Tycoon
-branch: main
+# Repository
 
-## Last sync
-date: 2026-10-14T00:00:00Z
-### Updated in this project
-- Repo connected; it was empty at connect time (nothing imported)
-- Asset kit prepared for manual commit: Asset Kit.dc.html, assets/
+Repository: Dynamis-d-Arc/Scammer-Tycoon
+Default branch: main
+Complete development branch: codex/game-checks-and-docs
 
-## Screen map
-| Screen | Repo files |
-|---|---|
-| Asset Kit.dc.html | (none yet) |
-| Scammer Den.dc.html | (none yet) |
+The Unity implementation is organized as four cumulative branches. See
+[DEVELOPMENT_HISTORY.md](DEVELOPMENT_HISTORY.md) for their order, contents,
+feature categories, and validation. The original HTML prototypes are retained
+at the repository root.
