@@ -1,0 +1,65 @@
+using System;
+using System.Reflection;
+using ScammerTown;
+using UnityEditor;
+using UnityEngine;
+public class PixelArtImport : AssetPostprocessor
+{
+    void OnPreprocessTexture()
+    {
+        if(!assetPath.Contains("/PixelOffice/"))return;
+        var t=(TextureImporter)assetImporter;
+        t.textureCompression=TextureImporterCompression.Uncompressed;
+        t.mipmapEnabled=false;t.isReadable=true;t.alphaIsTransparency=true;
+        t.filterMode=FilterMode.Point;t.maxTextureSize=2048;t.npotScale=TextureImporterNPOTScale.None;
+    }
+    public static int Verify()
+    {
+        int count=0;
+        foreach(string name in new[]{"stations","typing","props","room_empty","furniture","city","floor"})
+        {
+            var t=Resources.Load<Texture2D>("PixelOffice/"+name);
+            if(t==null || !t.isReadable || t.filterMode!=FilterMode.Point)throw new Exception("Pixel art missing/incorrect import: "+name);
+            var corners=new[]{t.GetPixel(0,0).a,t.GetPixel(t.width-1,0).a,t.GetPixel(0,t.height-1).a,t.GetPixel(t.width-1,t.height-1).a};
+            foreach(float a in corners)if(a>.05f)throw new Exception("Pixel art background must be transparent: "+name);
+            count++;
+        }
+        var atex=Resources.Load<Texture2D>("PixelOffice/stations");var btex=Resources.Load<Texture2D>("PixelOffice/typing");
+        if(atex.width!=btex.width || atex.height!=btex.height)throw new Exception("Animation atlas sizes differ");
+        count++;
+        // Every workstation cell must contain a usable sprite.
+        for(int row=0;row<4;row++)for(int col=0;col<4;col++)
+        {
+            int opaque=0;
+            for(int y=2;y<28;y++)for(int x=2;x<28;x++)
+                if(atex.GetPixel((int)((col+x/30f)*atex.width/4),(int)((row+y/30f)*atex.height/4)).a>.5f)opaque++;
+            if(opaque<30)throw new Exception("Empty workstation atlas cell");
+            count++;
+        }
+        var go=new GameObject("Pixel camera checks");
+        var game=go.AddComponent<ScammerTownGame>();
+        try
+        {
+            foreach(int level in new[]{1,5,20})
+            {
+                game.state=new TycoonState();
+                game.state.Current.level=level;RoomLayout.Ensure(game.state.Current);
+                var station=game.state.Current.layout.Find(i=>i.Station);
+                station.x=game.state.Current.Size-2;station.y=game.state.Current.Size-2;
+                var flags=BindingFlags.Instance|BindingFlags.NonPublic;
+                typeof(ScammerTownGame).GetField("pixelCameraCompany",flags).SetValue(game,-1);
+                string before=JsonUtility.ToJson(game.state);
+                typeof(ScammerTownGame).GetMethod("PixelCamera",flags).Invoke(game,null);
+                float zoom=(float)typeof(ScammerTownGame).GetField("zoom",flags).GetValue(game);
+                Vector2 pan=(Vector2)typeof(ScammerTownGame).GetField("roomPan",flags).GetValue(game);
+                float n=game.state.Current.Size,tile=Mathf.Min(90,1100/n,560/(n*.5f+2.5f))*zoom;
+                Vector2 position=RoomLayout.Project(station.x+.5f,station.y+.5f,tile,new Vector2(720,330)+pan);
+                if(Vector2.Distance(position,new Vector2(720,450))>1)throw new Exception("Camera must focus workstation at every expansion size");
+                if(before!=JsonUtility.ToJson(game.state))throw new Exception("Camera must not mutate save");
+                count+=2;
+            }
+        }
+        finally {UnityEngine.Object.DestroyImmediate(go);}
+        return count;
+    }
+}
