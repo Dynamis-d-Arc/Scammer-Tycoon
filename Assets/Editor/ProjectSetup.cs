@@ -76,6 +76,7 @@ public static class ProjectSetup
         checks += ManagementChecks.Run();
         checks += IdleChecks.Run();
         checks += ReliabilityChecks.Run();
+        checks += ProgressionChecks.Run();
         checks += PixelArtImport.Verify();
         Debug.Log("SCAMMER_TOWN_CHECKS_PASSED: " + checks);
     }

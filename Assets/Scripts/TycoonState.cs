@@ -32,6 +32,10 @@ namespace ScammerTown
         public Company[] companies = { new Company(), new Company() };
         public bool branchOwned, harborOwned, muted;
         public int idleVersion, managementVersion, goal, jobsCompleted, lastBillDay, incidentCompany=-1;
+        public ShortContract contract;
+        public bool contractActive;
+        public int contractsCompleted;
+        public float contractCooldown;
         public float totalJobIncome, nextIncident, incidentCountdown, recoveryCooldown, recoveryRemaining;
         public Company Current => companies[active];
     }
@@ -83,6 +87,13 @@ namespace ScammerTown
         }
         public static bool Valid(TycoonState s)
         {
+            if(s!=null && (!Finite(s.contractCooldown) || s.contractCooldown<0 || s.contractsCompleted<0))return false;
+            if(s!=null && s.contractActive)
+            {
+                var contract=s.contract;
+                if(contract==null)return false;
+                if(contract.job<0 || contract.job>2 || contract.company<0 || contract.company>2 || !Management.Owned(s,contract.company) || contract.target!=(contract.job==0?5:contract.job==1?4:3) || contract.reward!=(contract.job==0?400:contract.job==1?700:1000) || contract.progress<0 || contract.progress>=contract.target || !Finite(contract.deadline) || contract.deadline<0)return false;
+            }
             if (s == null || s.version != 1 || s.companies == null || (s.companies.Length != 2 && s.companies.Length != 3) || s.active < 0 || s.active >= s.companies.Length || !Management.Owned(s,s.active)) return false;
             if (!Finite(s.cash) || s.cash < 0 || !Finite(s.elapsed) || s.elapsed < 0 || !Finite(s.cycle) || s.cycle < 0 || s.cycle > CycleSeconds) return false;
             foreach (var c in s.companies)
@@ -92,6 +103,7 @@ namespace ScammerTown
                 if(s.goal<0 || s.goal>5 || s.jobsCompleted<0 || !Finite(s.totalJobIncome) || s.totalJobIncome<0 || !Finite(s.nextIncident) || !Finite(s.incidentCountdown) || !Finite(s.recoveryCooldown) || !Finite(s.recoveryRemaining) || s.recoveryRemaining<0 || s.incidentCompany < -1 || s.incidentCompany>=s.companies.Length) return false;
                 foreach(var c in s.companies)
                 {
+                    if(c.workers!=null)foreach(var worker in c.workers)if(worker!=null && (worker.specialty<0 || worker.specialty>4))return false;
                     if(c.workers==null || c.workers.Count!=c.employeeCount || !Finite(c.lockdown) || c.lockdown<0 || !Finite(c.earned) || c.earned<0) return false;
                     foreach(int upgrade in new[]{c.computerUpgrade,c.comfortUpgrade,c.lightingUpgrade,c.decorUpgrade}) if(upgrade<0 || upgrade>3)return false;
                     foreach(var w in c.workers) if(w==null || w.skill<1 || w.skill>5 || w.salary<0 || w.job < -1 || w.job>3 || w.assignment < -1 || w.assignment>3 || !Finite(w.mood) || w.mood<0 || w.mood>100 || !Finite(w.remaining) || !Finite(w.duration) || w.duration<0 || (w.job>=0 && (w.duration<=0 || w.remaining<0 || w.remaining>w.duration)))return false;

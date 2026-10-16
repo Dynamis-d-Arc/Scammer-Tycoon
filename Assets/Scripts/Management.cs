@@ -7,6 +7,7 @@ namespace ScammerTown
     [Serializable] public class Worker
     {
         public string name, station;
+        public int specialty;
         public int skill=1, salary=35, completed, job=-1, assignment=-1;
         public float energy=100, mood=80, remaining, duration, reaction;
         public bool resting;
@@ -76,14 +77,15 @@ namespace ScammerTown
             if(other!=null && other!=worker) {if(other.job>=0)return false;other.station=worker.station;}
             worker.station=station;return true;
         }
-        public static float Chance(Company c,Worker w,int job) => job==3 ? 100 : Mathf.Clamp(Jobs[job].chance+(w.skill-1)*3+(job==1 ? c.productTier-1 : c.employeeTier-1)*3+(w.mood-70)*.12f,20,98);
+        public static float Chance(Company c,Worker w,int job) => job==3 ? 100 : Mathf.Clamp(Jobs[job].chance+(w.skill-1)*3+(job==1 ? c.productTier-1 : c.employeeTier-1)*3+(w.mood-70)*.12f+(OfficeProgression.Matches(w,job)?5:0),20,98);
+        public static float Duration(Company c,Worker w,int company,int job) => Jobs[job].seconds/(Speed(company)*(1+.12f*c.computerUpgrade+.05f*c.lightingUpgrade+.04f*c.comfortUpgrade+OfficeProgression.DecorSpeed(c))*(OfficeProgression.Matches(w,job)?1.15f:1));
         public static bool Start(TycoonState s,int companyIndex,Worker w,int job)
         {
             if(job<0 || job>=Jobs.Length || !Owned(s,companyIndex) || s.paused) return false;
             var c=s.companies[companyIndex];var j=Jobs[job];
             if(!c.workers.Contains(w) || w.job>=0 || c.lockdown>0 || (job==2 && s.jobsCompleted<5)) return false;
             if(job!=3 && !c.layout.Exists(it=>it.id==w.station && it.placed && it.Station)) return false;
-            w.job=job;w.duration=j.seconds/(Speed(companyIndex)*(1+.12f*c.computerUpgrade+.05f*c.lightingUpgrade+.04f*c.comfortUpgrade));w.remaining=w.duration;w.status=j.name;
+            w.job=job;w.duration=Duration(c,w,companyIndex,job);w.remaining=w.duration;w.status=j.name;
             return true;
         }
         public static bool SetAssignment(TycoonState s,int index,Worker worker,int job)
@@ -97,10 +99,11 @@ namespace ScammerTown
         }
         public static bool Hire(TycoonState s,int i,int specialist=0)
         {
+            if(specialist<0 || specialist>4)return false;
             var c=s.companies[i];int cost=specialist==0 ? 750 : 1200;
             if(!Owned(s,i) || s.paused || c.employeeCount>=c.Capacity || !Rules.Pay(s,cost))return false;
             c.employeeCount++;Ensure(s);var w=c.workers[c.workers.Count-1];
-            if(specialist>0){w.skill=3;w.salary=60;w.name="Robin "+c.employeeCount;}
+            if(specialist>0){w.skill=3;w.salary=60;w.name="Robin "+c.employeeCount;w.specialty=specialist;}
             return true;
         }
         public static bool BuyHarbor(TycoonState s)
@@ -142,10 +145,11 @@ namespace ScammerTown
             {
                 if(!Owned(s,i))continue;
                 var c=s.companies[i];float workTime=Mathf.Max(0,dt-c.lockdown);c.lockdown=Mathf.Max(0,c.lockdown-dt);
+                float decorMorale=OfficeProgression.DecorMorale(c);
                 foreach(var w in c.workers)
                 {
                     w.reaction=Mathf.Max(0,w.reaction-dt);
-                    w.mood=Mathf.Min(100,w.mood+dt*.03f*c.decorUpgrade);
+                    w.mood=Mathf.Min(100,w.mood+dt*(.03f*c.decorUpgrade+decorMorale));
                     float available=workTime;
                     while(available>0)
                     {
@@ -159,9 +163,11 @@ namespace ScammerTown
                         w.skill=Mathf.Max(w.skill,Mathf.Min(5,1+w.completed/5));w.mood=Mathf.Clamp(w.mood+(won ? 4 : -3),20,100);
                         w.job=-1;w.remaining=0;w.status=won ? "Success! +$"+pay : "Partial result +$"+pay;w.reaction=4;
                         report(Name(i)+": "+w.name+" · "+w.status,pay);
+                        OfficeProgression.CompleteJob(s,i,job,s.elapsed-available,report);
                     }
                 }
             }
+            OfficeProgression.Expire(s,report);
             if(s.day>s.lastBillDay)
             {
                 float bill=0;for(int i=0;i<s.companies.Length;i++)if(Owned(s,i)) {bill+=Rent(i);foreach(var w in s.companies[i].workers)bill+=w.salary;}

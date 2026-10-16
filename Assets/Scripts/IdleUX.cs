@@ -58,7 +58,7 @@ namespace ScammerTown
             {
                 case 4:
                     Text("DECORATIONS");
-                    Text("Buy for this office, then place from Storage. Decorative furniture is cosmetic; morale upgrades are sold separately.",true);
+                    Text("Only placed furniture grants bonuses. Speed bonus caps at 8%; morale recovery at 0.14/sec. Stored furniture gives no bonus.",true);
                     Action("Open Storage",OpenFurnitureStorage);
                     foreach(var furniture in FurnitureCatalog.All)
                     {
@@ -67,6 +67,7 @@ namespace ScammerTown
                         GUI.BeginGroup(preview);SoftSprite(furniture.kind+"_0",new Vector2(preview.width*.5f,140),48);GUI.EndGroup();
                         int cost=FurnitureCatalog.Price(furniture.kind);
                         Text(furniture.name+" · "+furniture.footprint.x+" × "+furniture.footprint.y+" tiles");
+                        Text(OfficeProgression.DecorBenefit(furniture.kind),true);
                         Text("Owned here: "+C.decorations.FindAll(d=>d.kind==furniture.kind).Count,true);
                         Action("Buy to Storage · "+Money(cost),()=>
                         {
@@ -107,7 +108,12 @@ namespace ScammerTown
                     Text("Standard employee");Text("Skill 1 · $35/day salary",true);
                     Action("Recruit · $750",()=>Recruit(0),CanAct && C.employeeCount<C.Capacity && state.cash>=750);
                     Space();Text("Specialist");Text("Skill 3 · $60/day salary",true);
-                    Action("Recruit · $1,200",()=>Recruit(1),CanAct && C.employeeCount<C.Capacity && state.cash>=1200);break;
+                    for(int specialty=1;specialty<=4;specialty++)
+                    {
+                        int choice=specialty;
+                        Action("Recruit "+OfficeProgression.Specialty(choice)+" · $1,200",()=>Recruit(choice),CanAct && C.employeeCount<C.Capacity && state.cash>=1200);
+                    }
+                    Text("Specialists work 15% faster with +5 percentage points success on their specialty. Repairs remain guaranteed.",true);break;
             }
         }
         void DrawFloorExpansion()
@@ -158,6 +164,8 @@ namespace ScammerTown
                 GUILayout.BeginArea(new Rect(352,316,736,408));workerScroll=GUILayout.BeginScrollView(workerScroll);
                 if(workerPage==0)
                 {
+                    Text(OfficeProgression.Specialty(w.specialty)+" · matching jobs: +15% speed, +5 points success",true);
+                    Text("Office décor: +"+Mathf.RoundToInt(OfficeProgression.DecorSpeed(C)*100)+"% speed; +"+OfficeProgression.DecorMorale(C).ToString("0.00")+" morale/sec",true);
                     Text(WorkerStatus(w));
                     if(w.job>=0){GUILayout.Label(Mathf.RoundToInt((1-w.remaining/w.duration)*100)+"% complete",small);Rect progress=GUILayoutUtility.GetRect(700,10);Bar(progress.x,progress.y,progress.width,(1-w.remaining/w.duration)*100,lime);Space();}
                     Text("Assignment: "+(w.assignment>=0 ? Management.Jobs[w.assignment].name+" · repeats automatically" : "None"));
@@ -165,6 +173,12 @@ namespace ScammerTown
                     if(w.assignment>=0)Action("Stop after current job",()=>{w.assignment=-1;Save();},CanAct);
                     Text("Mood "+Mathf.RoundToInt(w.mood)+" / 100 · Higher mood improves success",true);
                     Action("Give bonus · $100 · +20 mood",()=>Buy("Employee bonus",100,()=>w.mood=Mathf.Min(100,w.mood+20)),CanAct && state.cash>=100 && w.mood<100);
+                    Space();Text("Specialty training · $300. Stop assignments and finish the current job before retraining.",true);
+                    for(int specialty=1;specialty<=4;specialty++)
+                    {
+                        int choice=specialty;
+                        Action("Train: "+OfficeProgression.Specialty(choice),()=>{if(OfficeProgression.Train(state,w,choice)){Save();Notify("Specialty updated.");}},CanAct && w.job<0 && w.specialty!=choice && state.cash>=300);
+                    }
                 }
                 else
                 {
@@ -188,7 +202,7 @@ namespace ScammerTown
                 bool needsDesk=i!=3 && w.station==null;
                 Panel(new Rect(x,y,360,176),new Color(.09f,.14f,.22f));
                 Label(x+14,y+12,332,28,j.name,heading);
-                float seconds=j.seconds/(Management.Speed(state.active)*(1+.12f*C.computerUpgrade+.05f*C.lightingUpgrade+.04f*C.comfortUpgrade));
+                float seconds=Management.Duration(C,w,state.active,i);
                 Label(x+14,y+45,332,45,Money(j.pay*(state.active==2 ? 1.15f : 1))+" per success · "+Mathf.CeilToInt(seconds)+"s\n"+Mathf.RoundToInt(Management.Chance(C,w,i))+"% success"+ (i==3 ? " · No desk needed" : " · Partial results pay 15%"),small);
                 Label(x+14,y+92,332,30,locked ? "Unlock: complete 5 jobs" : needsDesk ? "Place a desk before assigning this job" : w.assignment==i ? "Currently assigned · repeats automatically" : "Repeats automatically · no fee",small);
                 if(Button(x+14,y+128,332,locked ? "Locked" : w.assignment==i ? "Assigned" : "Assign "+w.name,CanAct && !locked && !needsDesk && w.assignment!=i,34))

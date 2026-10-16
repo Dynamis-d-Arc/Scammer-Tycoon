@@ -6,6 +6,12 @@ This is the playable Unity game developed from the original Basement and Neon pr
 
 ## Idle gameplay and navigation
 
+### Specialties, décor bonuses and contracts
+
+- Existing employees remain generalists. In an employee profile, spend $300 to train an idle employee in one of the four jobs. Matching jobs run 15% faster and gain 5 percentage points of success chance (repairs remain guaranteed). Recruit a chosen specialist for $1,200 at skill 3 and $60/day. Assignment cards show the actual duration and chance including bonuses. A running job keeps its original duration.
+- Only placed décor grants office-wide bonuses: lamps and shelves add 2% speed each, capped at two of each (+8% total). Plants restore 0.03 morale/second each, capped at two; one sofa and one rug each add 0.04/second, for a 0.14/second furniture cap. Stored furniture grants nothing; existing morale upgrades remain separate. The decoration shop lists each effect and employee profiles show current office totals.
+- Open **Contracts** beside Goals. Choose five Inbox, four Parcel, or three Neon completions in 120 seconds for $400, $700, or $1,000. Neon requires five completed jobs. Only the accepting office contributes; partial results count and ordinary earnings continue. Completion pays automatically once. There is no entry fee or failure penalty, and a 30-second cooldown follows completion, expiry or abandonment. Contracts continue while browsing or visiting another property, pause with the game, and save their remaining simulation time. No offline time is consumed.
+
 Heat, energy and police raids have been removed from gameplay. Old saves clear active raid timers and resume work without penalties. Legacy fields remain only for save compatibility. Old AI subscriptions migrate into free repeating assignments.
 
 - **Apartment** shows a compact business summary. Click an employee or their name above the desk to open their profile.
@@ -62,7 +68,7 @@ Use **Expand floor** below the room or in Shop → Equipment. Floors grow in 5-t
 ### Reliability and small windows
 The room backdrop is calibrated to the full placement grid: the starter office has 5×5 usable cells across its wood floor. Expansion scales the backdrop with the grid, and Fit office frames the floor and walls together. Furniture coordinates and ownership are unchanged.
 
-New offices start without decorative furniture. Buy sofas, shelves, plants, lamps, rugs and other cosmetic items in **Shop → Decorations**. Each purchase charges the displayed price and adds one item to that office's Storage, even if the floor is full. Placing, storing and moving owned items is free; cancelling placement leaves the purchased item in Storage. Multiple copies are supported, and ownership persists across saves and expansion. Morale upgrades are separate and do not grant free plants.
+New offices start without decorative furniture. Buy sofas, shelves, plants, lamps, rugs and other items in **Shop → Decorations**. The shop shows whether each item grants a capped bonus or is cosmetic. Each purchase charges the displayed price and adds one item to that office's Storage, even if the floor is full. Placing, storing and moving owned items is free; cancelling placement leaves the purchased item in Storage. Multiple copies are supported, and ownership persists across saves and expansion. Morale upgrades are separate and do not grant free plants.
 
 On migration, previously placed decorations remain owned and keep their positions. Unused automatic starter stock is removed from Storage rather than granted as free purchases. Desks, employee assignments and cash are preserved. Decorative sprites have additional visual clearance so tall furniture is less likely to hide nearby desks.
 

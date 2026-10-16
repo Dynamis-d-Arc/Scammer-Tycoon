@@ -199,6 +199,7 @@ namespace ScammerTown
             GUILayout.BeginArea(new Rect(450,210,540,520));scroll=GUILayout.BeginScrollView(scroll);
             switch(tab)
             {
+                case "Contracts":DrawContracts();break;
                 case "Overview":
                 case "Operations":DrawApartmentSummary();break;
                 case "Employees":DrawTeamList();break;

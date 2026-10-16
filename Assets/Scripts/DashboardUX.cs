@@ -65,6 +65,7 @@ namespace ScammerTown
                 var labelStyle=new GUIStyle(body){alignment=TextAnchor.MiddleCenter,fontStyle=FontStyle.Bold,normal={textColor=selected?new Color(.035f,.08f,.12f):ink}};
                 GUI.Label(new Rect(465+i*103,853,98,24),labels[i],labelStyle);
             }
+            if(Button(1000,840,180,state.contractActive?"Contract: "+state.contract.progress+"/"+state.contract.target:"Contracts",true,42))Navigate("Contracts");
             if(Button(1190,840,225,GoalReady?"Claim goal reward":"Goals",true,42))Navigate("Goals");
             Label(24,856,410,28,"1 Office   2 Team   3 Shop   4 City",small);
         }
