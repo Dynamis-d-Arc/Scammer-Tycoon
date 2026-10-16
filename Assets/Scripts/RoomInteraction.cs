@@ -90,7 +90,7 @@ namespace ScammerTown
             GUI.color=Color.white;
             GUI.EndGroup();
             Label(24,88,650,24,placingFurniture ? heldItem.Name + (purchaseCompany != null ? " · " + Money(purchasePrice) + " on placement" : " · from storage") : arrangingRoom ? "Drag furniture · R rotates · Esc finishes" : "Drag furniture to move · Click to select · R rotates",small);
-            if(Button(1040,86,160,"Focus team",true,30)){pixelCameraCompany=-1;PixelCamera();}
+            if(Button(1040,86,160,"Fit room",true,30)){pixelCameraCompany=-1;PixelCamera();}
             zoom=GUI.HorizontalSlider(new Rect(1215,97,190,20),zoom,.5f,Mathf.Max(3f,C.Size/5f));
 
             int stored=C.layout.FindAll(item=>!item.placed).Count;
@@ -107,7 +107,7 @@ namespace ScammerTown
                 }
                 if(Button(760,775,210,"Storage ("+stored+")",true,34))OpenFurnitureStorage();
                 if(Button(1050,775,170,"Expand floor",true,34))Navigate("Properties");
-                if(Button(1232,775,184,"Fit office",true,34)){zoom=1;roomPan=new Vector2(0,30-C.Size*Mathf.Min(90,1100f/C.Size,560f/(C.Size*.5f+2.5f))*.25f);}
+                if(Button(1232,775,184,"Fit office",true,34)){pixelCameraCompany=-1;PixelCamera();}
             }
             else
             {
@@ -115,7 +115,7 @@ namespace ScammerTown
                 if(Button(442,775,180,"Store selected",selected!=null && selected.placed && heldItem==null,34))
                 StoreFurniture(selected);
                 if(Button(634,775,230,"Storage ("+stored+")",true,34))OpenFurnitureStorage();
-                if(Button(876,775,160,"Fit office",heldItem==null || placingFurniture,34)){zoom=1;roomPan=new Vector2(0,30-C.Size*Mathf.Min(90,1100f/C.Size,560f/(C.Size*.5f+2.5f))*.25f);}
+                if(Button(876,775,160,"Fit office",heldItem==null || placingFurniture,34)){pixelCameraCompany=-1;PixelCamera();}
                 if(Button(1048,775,180,"Done arranging",true,34)){arrangingRoom=false;CancelPlacement();}
             }
         }
@@ -227,7 +227,7 @@ namespace ScammerTown
             {
                 var p=RoomLayout.Project(x,y,tile,origin);
                 if(p.x+tile*.5f<0 || p.x-tile*.5f>1440 || p.y+tile*.5f<126 || p.y>736)continue;
-                FloorCell(x,y,tile,origin,new Color(.3f,.7f,.8f,(x+y)%2==0 ? .08f : .16f));
+                FloorCell(x,y,tile,origin,new Color(.3f,.7f,.8f,(x+y)%2==0 ? .13f : .23f));
             }
         }
         void RotateFurniture(RoomItem selected)

@@ -9,6 +9,20 @@ public static class ReliabilityChecks
     {
         int count=0;
         Action<bool,string> check=(ok,message)=>{if(!ok)throw new Exception("RELIABILITY: "+message);count++;};
+        foreach(int size in new[]{5,10,25,100})foreach(float tile in new[]{20f,90f,180f})
+        {
+            var origin=new Vector2(720,320);var art=RoomLayout.FloorArtworkRect(size,tile,origin);
+            check(Mathf.Abs(art.width*.88f-size*tile)<.01f,"artwork floor width matches full grid at every office size");
+            check(Mathf.Abs(art.y+art.height*.295f-origin.y)<.01f,"back floor corner follows grid origin");
+            check(Mathf.Abs(art.y+art.height*.935f-(origin.y+size*tile*.5f))<.01f,"front floor corner follows last grid row");
+        }
+        for(int y=0;y<5;y++)for(int x=0;x<5;x++)
+        {
+            var origin=new Vector2(720,320);float tile=150;
+            var center=RoomLayout.Project(x,y,tile,origin)+new Vector2(0,tile*.25f);
+            var picked=RoomLayout.Unproject(center-new Vector2(0,tile*.25f),tile,origin);
+            check(Mathf.RoundToInt(picked.x)==x && Mathf.RoundToInt(picked.y)==y,"every starter cell picks correctly across the floor");
+        }
         var starter=new Company();RoomLayout.Ensure(starter);
         check(starter.decorations.Count==0,"starter room has no free decoration inventory");
         check(!starter.layout.Exists(i=>FurnitureCatalog.Find(i.kind)!=null),"starter does not receive free decorative furniture");

@@ -17,11 +17,11 @@ namespace ScammerTown
             if(pixelCameraCompany==state.active)return;
             pixelCameraCompany=state.active;
             float fit=Mathf.Min(90,1100f/C.Size,560f/(C.Size*.5f+2.5f));
-            zoom=120f/fit;
-            // Focus the first workstation without changing its saved position.
-            var first=C.layout.Find(i=>i.Station && i.placed);
-            float x=first==null?1:first.x+.5f,y=first==null?1:first.y+.5f;
-            roomPan=new Vector2(-(x-y)*60,120-(x+y)*30);
+            float tile=Mathf.Min(180,1000f/C.Size,600f/(C.Size*.78125f));
+            zoom=tile/fit;
+            // Frame the entire usable floor and walls rather than an oversized backdrop.
+            var room=RoomLayout.FloorArtworkRect(C.Size,tile,Vector2.zero);
+            roomPan=new Vector2(0,140-room.y-330);
         }
         bool AtlasSprite(Texture2D texture,int col,int row,int columns,int rows,Rect rect,float alpha=1,bool mirror=false)
         {
@@ -73,20 +73,8 @@ namespace ScammerTown
         }
         void DrawSoftRoom(float tile,Vector2 origin)
         {
-            // Separate floor extensions retain all usable space in existing large offices.
-            var woodDiamond=SoftAsset("floor");
-            if(C.Size>10)
-                for(int y=-2;y<C.Size+2;y++)for(int x=-2;x<C.Size+2;x++)
-                {
-                    var p=RoomLayout.Project(x,y,tile,origin);
-                    Rect r=new Rect(p.x-tile*.5f,p.y,tile,tile*.5f);
-                    if(r.xMax<0||r.x>1440||r.yMax<0||r.y>roomViewport.height)continue;
-                    GUI.DrawTexture(r,woodDiamond);
-                }
             var texture=SoftAsset("room_empty");if(texture==null)return;
-            float span=Mathf.Min(C.Size,10)+4;
-            float width=span*tile/.95f,height=width*.67f;
-            Rect room=new Rect(origin.x-width*.5f,origin.y-1.2f*tile-height*.3f,width,height);
+            Rect room=RoomLayout.FloorArtworkRect(C.Size,tile,origin);
             GUI.color=state.neon?new Color(.86f,.87f,1):Color.white;
             GUI.DrawTexture(room,texture);GUI.color=Color.white;
         }

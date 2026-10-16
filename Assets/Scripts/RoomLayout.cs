@@ -132,6 +132,14 @@ namespace ScammerTown
             }
         }
         public static Vector2 Project(float x,float y,float tile,Vector2 origin) => origin + new Vector2((x-y)*tile*.5f,(x+y)*tile*.25f);
+        // Calibrated to the wood surface, excluding the walls and foundation.
+        // The same tile pitch drives artwork, placement overlays and pointer picking.
+        public static Rect FloorArtworkRect(int size,float tile,Vector2 origin)
+        {
+            float width=size*tile/.88f;
+            float height=size*tile*.5f/.64f;
+            return new Rect(origin.x-width*.5f,origin.y-height*.295f,width,height);
+        }
         public static Vector2 Unproject(Vector2 point,float tile,Vector2 origin)
         {
             Vector2 p=point-origin;

@@ -53,8 +53,8 @@ public class PixelArtImport : AssetPostprocessor
                 float zoom=(float)typeof(ScammerTownGame).GetField("zoom",flags).GetValue(game);
                 Vector2 pan=(Vector2)typeof(ScammerTownGame).GetField("roomPan",flags).GetValue(game);
                 float n=game.state.Current.Size,tile=Mathf.Min(90,1100/n,560/(n*.5f+2.5f))*zoom;
-                Vector2 position=RoomLayout.Project(station.x+.5f,station.y+.5f,tile,new Vector2(720,330)+pan);
-                if(Vector2.Distance(position,new Vector2(720,450))>1)throw new Exception("Camera must focus workstation at every expansion size");
+                Rect room=RoomLayout.FloorArtworkRect((int)n,tile,new Vector2(720,330)+pan);
+                if(room.x<0 || room.xMax>1440 || room.y<126 || room.yMax>760)throw new Exception("Camera must frame the full room at every expansion size");
                 if(before!=JsonUtility.ToJson(game.state))throw new Exception("Camera must not mutate save");
                 count+=2;
             }
