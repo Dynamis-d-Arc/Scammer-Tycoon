@@ -14,7 +14,7 @@ namespace ScammerTown
         public bool Station => kind == "desktop" || kind == "laptop";
         public bool GroundCover => kind == "rug";
         public string Name => FurnitureCatalog.Find(kind)!=null ? FurnitureCatalog.Find(kind).name : Station ? (kind == "desktop" ? "Desktop workstation" : "Laptop workstation") :
-            kind == "board" ? "Crew board" : kind == "fridge" ? "Water cooler" : kind == "stash" ? "Stash" : "Burner phones";
+            kind == "board" ? "Marks board" : kind == "fridge" ? "Water cooler" : kind == "stash" ? "Stash" : "Burner phones";
     }
 
     public static class RoomLayout
@@ -132,13 +132,13 @@ namespace ScammerTown
             }
         }
         public static Vector2 Project(float x,float y,float tile,Vector2 origin) => origin + new Vector2((x-y)*tile*.5f,(x+y)*tile*.25f);
-        // Calibrated to the wood surface, excluding the walls and foundation.
-        // The same tile pitch drives artwork, placement overlays and pointer picking.
+        public const float WallHeightTiles=1.65f, FoundationDepthTiles=.22f, WallBorderTiles=.08f;
+        // Walls and foundation keep a fixed height in grid units as floor area grows.
         public static Rect FloorArtworkRect(int size,float tile,Vector2 origin)
         {
-            float width=size*tile/.88f;
-            float height=size*tile*.5f/.64f;
-            return new Rect(origin.x-width*.5f,origin.y-height*.295f,width,height);
+            float width=(size+2*WallBorderTiles)*tile;
+            float height=(size*.5f+WallHeightTiles+FoundationDepthTiles+2*WallBorderTiles)*tile;
+            return new Rect(origin.x-width*.5f,origin.y-(WallHeightTiles+WallBorderTiles)*tile,width,height);
         }
         public static Vector2 Unproject(Vector2 point,float tile,Vector2 origin)
         {

@@ -54,13 +54,13 @@ public static class FurnishingChecks
         var plant=company.layout.Find(i=>i.id=="plant_1");check(RoomLayout.Move(company,plant,13,12,2),"owned plant accepts a custom position");
         RoomLayout.Ensure(company);check(plant.x==13 && plant.y==12 && plant.rotation==2,"upgrade plant stays at the chosen position");
         var small=new Company {desktops=4};Stock(small);RoomLayout.Ensure(small);
-        check(small.layout.FindAll(i=>FurnitureCatalog.IsFurnishing(i)).Count==13,"small offices retain the full furniture inventory");
+        check(small.layout.FindAll(i=>FurnitureCatalog.IsFurnishing(i)).Count==small.decorations.FindAll(d=>d.kind!="fridge" && d.kind!="stash").Count,"small offices retain the full furniture inventory");
         check(small.layout.Exists(i=>FurnitureCatalog.IsFurnishing(i) && !i.placed),"overflow furnishings go into storage");
         foreach(var item in small.layout)if(item.placed)
             check(RoomLayout.CanPlace(small,item,item.x,item.y,item.rotation),"migration never leaves overlapping solid objects");
-        var atlas=Resources.Load<Texture2D>("PixelOffice/furniture");
         foreach(var def in FurnitureCatalog.All)
         {
+            var atlas=Resources.Load<Texture2D>("PixelOffice/"+def.atlas);
             check(def.pixels.x>=0 && def.pixels.y>=0 && def.pixels.xMax<=atlas.width && def.pixels.yMax<=atlas.height,def.kind+" sprite region stays in bounds");
             int opaque=0,clear=0;
             for(int y=0;y<20;y++)for(int x=0;x<20;x++)

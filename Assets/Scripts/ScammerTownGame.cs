@@ -11,7 +11,7 @@ namespace ScammerTown
         public TycoonState state = new TycoonState();
         Texture2D basement, neon, diamond;
         readonly List<string> events = new List<string>();
-        string tab = "Operations", selection = "Desktop", notice = "", saveStatus = "";
+        string tab = "Scams", selection = "Desktop", notice = "", saveStatus = "";
         float noticeUntil, saveClock, zoom = 1;
         Vector2 scroll;
         Vector2 viewportScroll;
@@ -38,24 +38,27 @@ namespace ScammerTown
             Load();
             Rules.MigrateStaff(state);
             Management.Ensure(state);SetupFeedback();
-            Log("Welcome to Scammer Town. Build your fictional empire.");
+            Management.RunFinished+=OnRunFinished;
+            Underworld.News+=OnUnderworldNews;
+            Log("Welcome to Scammer Town. Pick a scheme, put your crew on the phones, and try not to make the Gazette.");
         }
 
         void Update()
         {
             float dt = Time.deltaTime;
             if(!state.paused) animationTime+=dt;
-            Management.Tick(state,dt,()=>UnityEngine.Random.value,(message,amount)=>
-            {Log(message);if(amount>0)RewardFeedback(amount);else Notify(message);});
+            Management.Tick(state,dt,()=>UnityEngine.Random.value,Report);
+            SyncCall();
+            UpdateHookFeed();
             saveClock += dt;
             if (saveClock > 15) { Save(); saveClock = 0; }
         }
 
-        void Buy(string what, int cost, Action action)
+        void Buy(string what, int cost, Action action, bool clean = false)
         {
             if (!CanAct) return;
-            if (!Rules.Pay(state, cost)) { Notify("Need " + Money(cost) + " to " + what.ToLower() + "."); return; }
-            action(); Management.Ensure(state); Log(what + " · −" + Money(cost)); Notify(what + " complete!");PlayFeedback(false); Save();
+            if (!(clean ? Laundering.PayClean(state, cost) : Rules.Pay(state, cost))) { Notify("Need " + Money(cost) + (clean ? " in clean money" : "") + " to " + what.ToLower() + "."); return; }
+            action(); Management.Ensure(state); if(what.StartsWith("Upgrade") || what=="Expand floor")C.deliveryUntil=state.elapsed+10; Log(what + " · −" + Money(cost)); Notify(what + " complete!");PlayFeedback(false); Save();
         }
         void Tier(string name, int current, Action action)
         {
@@ -103,13 +106,13 @@ namespace ScammerTown
         }
         void OnApplicationQuit() => Save();
         void OnApplicationPause(bool paused) { if (paused) Save(); }
-        void OnDestroy() { if (diamond != null) Destroy(diamond);  if(keyboardArt!=null) foreach(var texture in keyboardArt) Destroy(texture); if(employeeArt!=null) foreach(var texture in employeeArt) Destroy(texture); if(typingArmArt!=null) foreach(var texture in typingArmArt) Destroy(texture); foreach(var texture in new[]{uiPanel,uiNormal,uiHover,uiPressed,uiAccent,uiAccentHover,uiAccentPressed,uiDisabled})if(texture!=null)Destroy(texture); if(rewardSound!=null)Destroy(rewardSound);if(buySound!=null)Destroy(buySound); }
+        void OnDestroy() { Management.RunFinished-=OnRunFinished; Underworld.News-=OnUnderworldNews; ReleaseDenArt(); if(roomArtwork!=null){roomArtwork.Release();Destroy(roomArtwork);} if(roomSurface!=null)Destroy(roomSurface); if (diamond != null) Destroy(diamond);  if(keyboardArt!=null) foreach(var texture in keyboardArt) Destroy(texture); if(employeeArt!=null) foreach(var texture in employeeArt) Destroy(texture); if(typingArmArt!=null) foreach(var texture in typingArmArt) Destroy(texture); foreach(var texture in new[]{uiPanel,uiNormal,uiHover,uiPressed,uiAccent,uiAccentHover,uiAccentPressed,uiDisabled})if(texture!=null)Destroy(texture); if(rewardSound!=null)Destroy(rewardSound);if(buySound!=null)Destroy(buySound); }
 
         void Styles()
         {
-            if (title != null && primaryButton != null && disabledButton != null && dockLabel != null && dockSelectedLabel != null) return;
+            if (title != null && primaryButton != null && disabledButton != null && dockLabel != null && dockSelectedLabel != null && paperCard != null) return;
             // Unity can retain old styles across a live script reload while new fields are null.
-            foreach(var texture in new[]{uiPanel,uiNormal,uiHover,uiPressed,uiAccent,uiAccentHover,uiAccentPressed,uiDisabled})
+            foreach(var texture in new[]{uiPanel,uiNormal,uiHover,uiPressed,uiAccent,uiAccentHover,uiAccentPressed,uiDisabled,uiPaper})
                 if(texture!=null)Destroy(texture);
             cityMarkerStyle=null;
             title = new GUIStyle(GUI.skin.label) { fontSize = 29, fontStyle = FontStyle.Bold, normal = { textColor = ink } };
@@ -139,6 +142,7 @@ namespace ScammerTown
             dockSelectedLabel=new GUIStyle(dockLabel);dockSelectedLabel.normal.textColor=new Color(.025f,.12f,.13f);
             uiPanel=PixelSurface(Color.white);
             card = new GUIStyle(GUI.skin.box) { normal = { background = uiPanel }, border=new RectOffset(8,8,8,8) };
+            DenStyles();
         }
         void Panel(Rect r, Color c)
         {
@@ -168,6 +172,7 @@ namespace ScammerTown
             if(Event.current.type==EventType.KeyDown && Event.current.keyCode==KeyCode.Escape)
             {
                 if(confirmReset)confirmReset=false;
+                else if(storyModal)storyModal=false;
                 else if(help)help=false;
                 else if(furnitureStorageOpen)furnitureStorageOpen=false;
                 else if(workerModal)workerModal=false;
@@ -178,11 +183,11 @@ namespace ScammerTown
                 else if(cityView){cityView=false;tab="Operations";}
                 Event.current.Use();
             }
-            if(Event.current.type==EventType.KeyDown && !help && !confirmReset && !workerModal && !shopModal && !managementPanel && !furnitureStorageOpen && GUIUtility.keyboardControl==0)
+            if(Event.current.type==EventType.KeyDown && !help && !confirmReset && !storyModal && !workerModal && !shopModal && !managementPanel && !furnitureStorageOpen && GUIUtility.keyboardControl==0)
             {
                 var key=Event.current.keyCode;
                 if(key==KeyCode.C || key==KeyCode.Alpha4){if(cityView)VisitSelectedApartment();else OpenCity();Event.current.Use();}
-                else if(key==KeyCode.Alpha1){Navigate("Operations");Event.current.Use();}
+                else if(key==KeyCode.Alpha1){Navigate("Scams");Event.current.Use();}
                 else if(key==KeyCode.Alpha2){Navigate("Employees");Event.current.Use();}
                 else if(key==KeyCode.Alpha3){OpenShop(0);Event.current.Use();}
             }
@@ -193,7 +198,7 @@ namespace ScammerTown
             if(smallViewport)viewportScroll=GUI.BeginScrollView(new Rect(0,0,Screen.width/scale,Screen.height/scale),viewportScroll,new Rect(0,0,1440,900));
             Panel(new Rect(0,0,1440,900), new Color(.035f,.05f,.09f));
             bool enabled=GUI.enabled;
-            GUI.enabled=!help && !confirmReset && !workerModal && !shopModal && !managementPanel && !furnitureStorageOpen;
+            GUI.enabled=!help && !confirmReset && !storyModal && !workerModal && !shopModal && !managementPanel && !furnitureStorageOpen;
             if(cityView)DrawCity();else DrawRoom();
             DrawTopBar();DrawBottomDock();DrawCompactAlert();
             GUI.enabled=enabled;
@@ -201,6 +206,7 @@ namespace ScammerTown
             if(shopModal)DrawShopModal();
             if(workerModal)DrawEmployeeModal();
             if(furnitureStorageOpen)DrawFurnitureStorage();
+            if (storyModal) DrawStoryModal();
             if (help) DrawHelp();
             if (confirmReset) DrawReset();
             if (Time.unscaledTime < noticeUntil) { Panel(new Rect(380,684,670,48),new Color(.24f,.15f,.075f)); Label(398,690,634,36,notice); }
@@ -211,20 +217,25 @@ namespace ScammerTown
         void DrawInspector()
         {
             Panel(new Rect(0,0,1440,900),new Color(.015f,.025f,.05f,.78f));
-            Rect window=new Rect(420,130,600,640);
+            bool scamBoard=tab=="Scams" || tab=="Town & risk" || tab=="Money";
+            Rect window=scamBoard?new Rect(230,115,980,670):new Rect(420,130,600,640);
             Panel(window,new Color(.065f,.095f,.16f));
-            string caption=tab=="Employees" ? "TEAM" : tab=="Properties" ? "EXPAND OFFICE" : tab=="Overview" ? "YOUR OFFICE" : tab.ToUpper();
-            Label(450,152,420,36,caption,heading);
-            if(Button(886,150,104,"Close",true,36))managementPanel=false;
-            GUILayout.BeginArea(new Rect(450,210,540,520));scroll=GUILayout.BeginScrollView(scroll);
+            string caption=tab=="Scams" ? "SCAM BOARD" : tab=="Employees" ? "TEAM" : tab=="Properties" ? "EXPAND OFFICE" : tab=="Overview" ? "YOUR OFFICE" : tab=="Money" ? "MONEY & FRONTS" : tab=="Town & risk" ? "HEAT & TOWN" : tab.ToUpper();
+            Label(window.x+30,window.y+22,420,36,caption,heading);
+            if(Button(window.xMax-134,window.y+20,104,"Close",true,36))managementPanel=false;
+            GUILayout.BeginArea(new Rect(window.x+30,window.y+80,window.width-60,window.height-120));scroll=GUILayout.BeginScrollView(scroll);
             switch(tab)
             {
+                case "Scams":DrawScamBoard();break;
                 case "Contracts":DrawContracts();break;
                 case "Overview":
                 case "Operations":DrawApartmentSummary();break;
                 case "Employees":DrawTeamList();break;
                 case "Equipment":Action("Open shop",()=>OpenShop(0));break;
+                case "Town & risk":DrawTownDecisions();break;
+                case "Money":DrawMoneyPanel();break;
                 case "Goals":
+                    DrawEmpireGoals();
                     Text(Management.Goal(state));
                     if(state.goal<5)PrimaryAction("Claim "+Money(Management.GoalReward(state.goal)),()=>
                     {
@@ -241,12 +252,13 @@ namespace ScammerTown
                     Action(state.neon ? "Lighting: Neon" : "Lighting: Amber",()=>{state.neon=!state.neon;Save();});
                     Action(state.muted ? "Sound: Off" : "Sound: On",()=>{state.muted=!state.muted;Save();});
                     Action("How to play",()=>{managementPanel=false;help=true;});
-                    Text("Keyboard: 1 Office · 2 Team · 3 Shop · 4 City. Esc closes a panel.",true);
+                    Text("Keyboard: 1 Scams · 2 Team · 3 Shop · 4 City. Esc closes a panel.",true);
                     Action("Start a new game",()=>{managementPanel=false;confirmReset=true;});break;
                 case "Properties":
                     Text(CompanyName);Text(Management.Benefit(state.active));
                     Text(C.Size+" × "+C.Size+" · "+C.Capacity+" workstation slots");
                     DrawFloorExpansion();
+                    DrawHeadquarters();
                     Action("View all properties",OpenCity);
                     if(state.branchOwned)Action("Move equipment & visit · $250",()=>Buy("Relocate",250,Transfer),CanAct && state.cash>=250);
                     break;
@@ -278,7 +290,7 @@ namespace ScammerTown
         void DrawHelp()
         {
             Modal("HOW TO PLAY");
-            Label(462,300,515,290,"1. Press Start idle employees. Your team repeats work and earns cash automatically.\n\n2. Buy laptops and hire more employees to grow. New hires start working automatically.\n\n3. Spend earnings on skills, upgrades and a bigger office.\n\nThat is the main loop. Suspicion breaks resolve themselves. The laptop card game, contracts and decorating are optional extras.\n\nScroll to zoom; drag to move furniture. No income while the game is closed.");
+            Label(462,300,515,300,"1. Open Scams, pick a scheme and put your crew on it. Every run targets a fictional mark. Take over a call yourself for a bigger close.\n\n2. Scam money is dirty. Buy fronts in the City to launder it; properties and floor space need clean money.\n\n3. Every run fills Detective Plodd's case file. At 75% a raid is scheduled: shred, ditch burners, go dark or bribe.\n\n4. Keep your crew paid and happy, or they talk, or the Velvet Syndicate hires them. No offline income.");
             if(Button(462,620,516,"Back to town")) help=false;
         }
         void DrawReset()
@@ -286,7 +298,7 @@ namespace ScammerTown
             Modal("START A NEW GAME?");
             Label(462,310,515,100,"This replaces your saved progress with a fresh company. Your project files and artwork are unaffected.");
             if(Button(462,460,516,"Keep playing")) confirmReset=false;
-            if(Button(462,520,516,"Reset saved progress")) { state=new TycoonState();Rules.MigrateStaff(state);Management.Ensure(state);selectedWorker=0;workerModal=false;cityView=false;events.Clear();confirmReset=false;Save();Log("New company established."); }
+            if(Button(462,520,516,"Reset saved progress")) { state=new TycoonState();Rules.MigrateStaff(state);Management.Ensure(state);selectedWorker=0;workerModal=false;cityView=false;events.Clear();confirmReset=false;Navigate("Scams");Save();Log("New scam crew established."); }
         }
     }
 }

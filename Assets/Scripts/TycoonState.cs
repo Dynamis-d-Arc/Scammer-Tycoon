@@ -16,7 +16,12 @@ namespace ScammerTown
         public List<RoomItem> layout;
         public List<Worker> workers;
         public int computerUpgrade, comfortUpgrade, lightingUpgrade, decorUpgrade;
+        public int headsetUpgrade, networkUpgrade, dealUpgrade, breakUpgrade, operationPace;
         public float earned, lockdown;
+        public float[] townResistance, shelvedUntil;
+        public float moonshotPot, pushUntil, pushCooldown, deliveryUntil;
+        public int townEvent;
+        public bool headquarters, potProtected;
         public bool heatWarned;
         public int furnishingLayoutVersion;
         public List<DecorationOwned> decorations;
@@ -34,11 +39,30 @@ namespace ScammerTown
         public Company[] companies = { new Company(), new Company() };
         public bool branchOwned, harborOwned, muted;
         public int idleVersion, managementVersion, goal, jobsCompleted, lastBillDay, incidentCompany=-1;
+        public int scamVersion, scamsCompleted, legacyScamCredit;
+        public float scamIncome, legacyScamIncomeCredit;
         public ShortContract contract;
         public bool contractActive;
         public int contractsCompleted;
         public float contractCooldown;
-        public float totalJobIncome, nextIncident, incidentCountdown, recoveryCooldown, recoveryRemaining;
+        public float totalJobIncome, nextIncident, incidentCountdown;
+        public int townVersion, empireRank, rivalWins, rivalResult;
+        public int rivalStartRuns, rivalTarget;
+        public float rivalDeadline, rivalCooldown;
+        public bool rivalActive;
+        // Cosmetic counter of runs started; seeds each run's fictional mark.
+        public int marksMet;
+        // Underworld: the detective's case file and raids (reusing raidSeconds),
+        // dirty money and fronts, and the Velvet Syndicate's moves.
+        public int underworldVersion;
+        public float caseFile, lastRaidAt=-1;
+        public int raidOffice=-1, lastRaidOffice=-1, raidCount, bribes;
+        public bool evidenceShredded, burnersDitched, wentDark;
+        // dirty is the part of cash that still needs laundering (0 <= dirty <= cash).
+        public float dirty, laundered;
+        public int fronts;
+        public float rivalMoveAt, undercutUntil, truceUntil, offerUntil;
+        public int undercutJob=-1, offerAmount, storyRank;
         public Company Current => companies[active];
     }
 
@@ -58,7 +82,7 @@ namespace ScammerTown
         }
         public static bool BuyApartment(TycoonState state)
         {
-            if(state.branchOwned || state.paused || !Pay(state,3000)) return false;
+            if(state.branchOwned || state.paused || !Laundering.PayClean(state,3000)) return false;
             state.companies[1] = new Company { neonTheme=true };
             RoomLayout.Ensure(state.companies[1]);
             state.branchOwned=true;
@@ -84,17 +108,18 @@ namespace ScammerTown
         public static bool Pay(TycoonState s, float amount)
         {
             if (amount < 0 || s.cash < amount) return false;
-            s.cash -= amount;
+            Laundering.Spend(s, amount);
             return true;
         }
         public static bool Valid(TycoonState s)
         {
+            if(s!=null && (s.scamVersion<0 || s.scamVersion>3 || s.scamsCompleted<0 || s.legacyScamCredit<0 || s.legacyScamCredit>10 || !Finite(s.scamIncome) || s.scamIncome<0 || !Finite(s.legacyScamIncomeCredit) || s.legacyScamIncomeCredit<0 || s.legacyScamIncomeCredit>1000))return false;
             if(s!=null && (!Finite(s.contractCooldown) || s.contractCooldown<0 || s.contractsCompleted<0))return false;
             if(s!=null && s.contractActive)
             {
                 var contract=s.contract;
                 if(contract==null)return false;
-                if(contract.job<0 || contract.job>2 || contract.company<0 || contract.company>2 || !Management.Owned(s,contract.company) || contract.target!=(contract.job==0?5:contract.job==1?4:3) || contract.reward!=(contract.job==0?400:contract.job==1?700:1000) || contract.progress<0 || contract.progress>=contract.target || !Finite(contract.deadline) || contract.deadline<0)return false;
+                if(contract.job<0 || contract.job>=(s.scamVersion<3?3:Management.Jobs.Length) || contract.company<0 || contract.company>2 || !Management.Owned(s,contract.company) || contract.target!=EmpireProgression.ContractTarget(contract.job) || contract.reward!=EmpireProgression.ContractReward(contract.job) || contract.progress<0 || contract.progress>=contract.target || !Finite(contract.deadline) || contract.deadline<0)return false;
             }
             if (s == null || s.version != 1 || s.companies == null || (s.companies.Length != 2 && s.companies.Length != 3) || s.active < 0 || s.active >= s.companies.Length || !Management.Owned(s,s.active)) return false;
             if (!Finite(s.cash) || s.cash < 0 || !Finite(s.elapsed) || s.elapsed < 0 || !Finite(s.cycle) || s.cycle < 0 || s.cycle > CycleSeconds) return false;
@@ -102,19 +127,21 @@ namespace ScammerTown
                 if (c == null || c.employeeCount < 0 || c.employeeCount > 2000 || c.level < 1 || c.level > MaxOfficeLevel || c.desktops < 0 || c.laptops < 0 || c.Stations > c.Capacity || c.burners < 0 || c.burners > 999 || c.employeeTier < 1 || c.employeeTier > 5 || c.productTier < 1 || c.productTier > 5 || c.securityTier < 0 || c.securityTier > 5) return false;
             if(s.managementVersion>0)
             {
-                if(s.goal<0 || s.goal>5 || s.jobsCompleted<0 || !Finite(s.totalJobIncome) || s.totalJobIncome<0 || !Finite(s.nextIncident) || !Finite(s.incidentCountdown) || !Finite(s.recoveryCooldown) || !Finite(s.recoveryRemaining) || s.recoveryRemaining<0 || s.incidentCompany < -1 || s.incidentCompany>=s.companies.Length) return false;
+                if(s.goal<0 || s.goal>5 || s.jobsCompleted<0 || !Finite(s.totalJobIncome) || s.totalJobIncome<0 || !Finite(s.nextIncident) || !Finite(s.incidentCountdown) || s.incidentCompany < -1 || s.incidentCompany>=s.companies.Length) return false;
                 foreach(var c in s.companies)
                 {
                     if(!Finite(c.suspicion) || c.suspicion<0 || c.suspicion>100)return false;
                     if(!OfficeProgression.ValidSkills(c.campaignSkills))return false;
                     if(c.workers!=null)foreach(var worker in c.workers)if(worker!=null && !OfficeProgression.ValidVoucher(worker))return false;
-                    if(c.workers!=null)foreach(var worker in c.workers)if(worker!=null && (worker.specialty<0 || worker.specialty>4))return false;
+                    if(c.workers!=null)foreach(var worker in c.workers)if(worker!=null && (worker.specialty<0 || worker.specialty>(s.scamVersion<2?4:s.scamVersion<3?3:Management.Jobs.Length)))return false;
                     if(c.workers==null || c.workers.Count!=c.employeeCount || !Finite(c.lockdown) || c.lockdown<0 || !Finite(c.earned) || c.earned<0) return false;
-                    foreach(int upgrade in new[]{c.computerUpgrade,c.comfortUpgrade,c.lightingUpgrade,c.decorUpgrade}) if(upgrade<0 || upgrade>3)return false;
-                    foreach(var w in c.workers) if(w==null || w.skill<1 || w.skill>5 || w.salary<0 || w.job < -1 || w.job>3 || w.assignment < -1 || w.assignment>3 || !Finite(w.mood) || w.mood<0 || w.mood>100 || !Finite(w.remaining) || !Finite(w.duration) || w.duration<0 || (w.job>=0 && (w.duration<=0 || w.remaining<0 || w.remaining>w.duration)))return false;
+                    foreach(int upgrade in new[]{c.computerUpgrade,c.comfortUpgrade,c.lightingUpgrade,c.decorUpgrade,c.headsetUpgrade,c.networkUpgrade,c.dealUpgrade,c.breakUpgrade}) if(upgrade<0 || upgrade>3)return false;
+                    if(c.operationPace<0 || c.operationPace>2)return false;
+                    int maxJob=s.scamVersion<2?3:s.scamVersion<3?2:Management.Jobs.Length-1;
+                    foreach(var w in c.workers) if(w==null || w.skill<1 || w.skill>5 || w.salary<0 || w.job < -1 || w.job>maxJob || w.assignment < -1 || w.assignment>maxJob || !Finite(w.mood) || w.mood<0 || w.mood>100 || !Finite(w.remaining) || !Finite(w.duration) || w.duration<0 || (w.job>=0 && (w.duration<=0 || w.remaining<0 || w.remaining>w.duration)))return false;
                 }
             }
-            return true;
+            return LivingTown.Valid(s) && Underworld.Valid(s);
         }
         static bool Finite(float n) => !float.IsNaN(n) && !float.IsInfinity(n);
     }

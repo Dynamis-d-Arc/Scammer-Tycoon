@@ -10,7 +10,8 @@ public static class PlacementChecks
         Action<bool,string> check=(ok,description)=>{if(!ok)throw new Exception("PLACEMENT FAILED: "+description);count++;};
         var company=new Company();FurnishingChecks.Stock(company);
         RoomLayout.Ensure(company);
-        check(company.layout.Count==18,"old save migrates equipment and individual furnishings");
+        // Board, phones and the starter desktop, plus every stocked furnishing.
+        check(company.layout.Count==3+company.decorations.Count,"old save migrates equipment and individual furnishings");
         foreach(var item in company.layout)if(FurnitureCatalog.IsFurnishing(item))item.placed=false;
         check(company.layout.Exists(i=>i.Station && i.placed),"workstation remains placed with a full decoration inventory");
         var desk=company.layout.Find(i=>i.id=="desktop_0");
