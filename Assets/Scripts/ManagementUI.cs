@@ -62,10 +62,33 @@ namespace ScammerTown
         void DrawRoomUpgrades()
         {
             Space();Text("ROOM IMPROVEMENTS · 3 LEVELS EACH");
-            UpgradeButton("Computers",C.computerUpgrade,450,"12% faster jobs per level; brighter desk trim",()=>C.computerUpgrade++);
-            UpgradeButton("Chairs",C.comfortUpgrade,300,"4% faster jobs per level; upholstered seats",()=>C.comfortUpgrade++);
-            UpgradeButton("Lighting",C.lightingUpgrade,250,"5% faster jobs per level; lit floor borders",()=>C.lightingUpgrade++);
+            Text("Computer appearance: "+EmpireProgression.ComputerName(C.computerUpgrade),true);
+            Rect preview=GUILayoutUtility.GetRect(650,170);
+            GUI.BeginGroup(preview);
+            SoftSprite("desktop_0_1",new Vector2(110,160),70,1,SelectedWorker?.appearance??1);
+            SoftSprite("laptop_0_1",new Vector2(280,160),70,1,SelectedWorker?.appearance??1);
+            GUI.EndGroup();
+            UpgradeButton("Computers",C.computerUpgrade,450,"12% faster jobs per level; visibly upgrades every computer. Lv 1: flat screens. Lv 2: dual screens. Lv 3: triple screens. Unlocks advanced scams.",()=>C.computerUpgrade++);
+            UpgradeButton("Chairs",C.comfortUpgrade,300,"4% faster jobs per level",()=>C.comfortUpgrade++);
+            UpgradeButton("Lighting",C.lightingUpgrade,250,"5% faster jobs per level",()=>C.lightingUpgrade++);
             UpgradeButton("Décor",C.decorUpgrade,200,"Morale recovery; decorative furniture sold separately",()=>C.decorUpgrade++);
+            for(int i=0;i<EmpireProgression.UpgradeNames.Length;i++)
+            {
+                int choice=i,level=EmpireProgression.Level(C,i),cost=EmpireProgression.Cost(C,i);
+                Space();Text(EmpireProgression.UpgradeNames[i]+" · "+level+"/3");
+                Text(EmpireProgression.UpgradeEffects[i],true);
+                Action(level==3?"Fully upgraded":"Upgrade · "+Money(cost),()=>
+                {
+                    if(EmpireProgression.Buy(state,choice)){Save();PlayFeedback(false);Notify(EmpireProgression.UpgradeNames[choice]+" upgraded.");}
+                },CanAct && level<3 && state.cash>=cost);
+            }
+            Space();Text("OPERATING STYLE");
+            Text("Choose a trade-off for this office. Speed, payout and suspicion changes apply to newly started jobs. Current runs keep their quoted terms.",true);
+            for(int i=0;i<EmpireProgression.PaceNames.Length;i++)
+            {
+                int choice=i;Text(EmpireProgression.PaceEffects[i],true);
+                Action((C.operationPace==i?"✓ ":"")+EmpireProgression.PaceNames[i],()=>{if(EmpireProgression.SetPace(state,choice))Save();},CanAct && C.operationPace!=i);
+            }
         }
         void UpgradeButton(string name,int level,int unitCost,string benefit,System.Action upgrade)
         {
@@ -76,9 +99,10 @@ namespace ScammerTown
         void DrawWorkerBubble(RoomItem item,Vector2 p,float tile)
         {
             var w=Management.At(C,item);if(w==null)return;
-            string activity=w.voucher!=null?"Voucher matching "+w.voucher.progress+"/4":C.lockdown>0?"Office paused":w.job>=0 && w.job!=3 && !item.placed?"Waiting for desk":OfficeProgression.CampaignActivity(w);
-            string text=w.name+" · "+(w.reaction>0 ? w.status : activity);
-            if(w.job>=0)text+="\n"+Management.Jobs[w.job].name+" · "+Mathf.CeilToInt(w.remaining)+"s";
+            string activity=w.onCall?"You're on this call":C.lockdown>0?"Office paused":w.job>=0 && !item.placed?"Waiting for desk":OfficeProgression.CampaignActivity(w);
+            var mark=Marks.Current(w);
+            string text=w.reaction>0 ? w.name+" · "+w.status : mark!=null ? w.name+" → "+mark.Short : w.name+" · "+activity;
+            if(w.job>=0)text+="\n"+(C.lockdown>0 ? "Office paused" : activity)+" · "+Mathf.CeilToInt(w.remaining)+"s";
             float labelY=p.y-tile*2.25f*WorkstationVisualScale;
             Rect r=new Rect(Mathf.Clamp(p.x-110,24,1196),Mathf.Max(145,labelY-20),220,w.job>=0?52:30);
             Panel(r,w.reaction>0 ? new Color(.09f,.24f,.23f,.97f) : new Color(.065f,.095f,.16f,.97f));
@@ -91,6 +115,7 @@ namespace ScammerTown
                 Color lamp=C.lockdown>0?muted:Color.Lerp(lime,Color.white,(Mathf.Sin(animationTime*5)+1)*.3f);
                 Panel(new Rect(r.xMax-7,r.y+3,4,4),lamp);
             }
+            if(heldItem==null)DrawCrewChatter(w,r);
         }
     }
 }

@@ -25,9 +25,13 @@ public static class ReliabilityChecks
         foreach(int size in new[]{5,10,25,100})foreach(float tile in new[]{20f,90f,180f})
         {
             var origin=new Vector2(720,320);var art=RoomLayout.FloorArtworkRect(size,tile,origin);
-            check(Mathf.Abs(art.width*.88f-size*tile)<.01f,"artwork floor width matches full grid at every office size");
-            check(Mathf.Abs(art.y+art.height*.295f-origin.y)<.01f,"back floor corner follows grid origin");
-            check(Mathf.Abs(art.y+art.height*.935f-(origin.y+size*tile*.5f))<.01f,"front floor corner follows last grid row");
+            check(Mathf.Abs(art.width-(size+2*RoomLayout.WallBorderTiles)*tile)<.01f,"room width follows floor grid plus constant border");
+            check(Mathf.Abs(origin.y-art.y-(RoomLayout.WallHeightTiles+RoomLayout.WallBorderTiles)*tile)<.01f,"walls keep the same height in tile units after expansion");
+            check(Mathf.Abs(art.yMax-(origin.y+size*tile*.5f)-(RoomLayout.FoundationDepthTiles+RoomLayout.WallBorderTiles)*tile)<.01f,"foundation stays at the front floor corner with constant thickness");
+            var bigger=RoomLayout.FloorArtworkRect(size+5,tile,origin);
+            check(Mathf.Abs(bigger.height-art.height-2.5f*tile)<.01f && Mathf.Abs(bigger.width-art.width-5*tile)<.01f,"expansion adds only five rows and columns of floor, not taller architecture");
+            var workerRect=ScammerTownGame.WorkstationSpriteRect(origin,tile);
+            check(Mathf.Abs(workerRect.width/tile-2.205f)<.001f,"crew and desks retain a constant scale relative to architecture");
         }
         for(int y=0;y<5;y++)for(int x=0;x<5;x++)
         {
@@ -85,10 +89,10 @@ public static class ReliabilityChecks
         check(w.remaining<remaining,"same worker resumes when desk returns");
 
         var coarse=new TycoonState();Management.Ensure(coarse);
-        Management.SetAssignment(coarse,0,coarse.Current.workers[0],3);
+        Management.SetAssignment(coarse,0,coarse.Current.workers[0],0);
         var fine=JsonUtility.FromJson<TycoonState>(JsonUtility.ToJson(coarse));
-        Management.Tick(coarse,35,()=>0,(m,a)=>{});
-        for(int i=0;i<140;i++)Management.Tick(fine,.25f,()=>0,(m,a)=>{});
+        Management.Tick(coarse,41,()=>0,(m,a)=>{});
+        for(int i=0;i<164;i++)Management.Tick(fine,.25f,()=>0,(m,a)=>{});
         check(coarse.jobsCompleted==3 && coarse.cash==fine.cash,"large and small time steps pay equally");
         check(Mathf.Abs(coarse.Current.workers[0].remaining-fine.Current.workers[0].remaining)<.001f,"leftover time advances next job");
         coarse.Current.workers[0].assignment=-1;

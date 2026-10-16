@@ -64,19 +64,27 @@ namespace ScammerTown
             Vector2 pointerTile = RoomLayout.Unproject(e.mousePosition-new Vector2(0,tile*.25f),tile,origin);
             UpdatePlacementCandidate(pointerTile);
             DrawSoftRoom(tile,origin);
+            DrawSirenWash(RoomLayout.FloorArtworkRect(C.Size,tile,origin));
             if (arrangingRoom || placingFurniture || draggingFurniture) DrawPlacementGrid(tile,origin);
             if (selected != null && selected.placed && heldItem == null)
                 DrawFootprint(selected,selected.x,selected.y,selected.rotation,tile,origin,new Color(.45f,.65f,.28f));
             roomOrder.Clear();
             foreach (var item in C.layout) if (item.placed) roomOrder.Add(item);
             roomOrder.Sort(FurnitureCatalog.CompareDepth);
+            PrepareOfficeLife();
             RoomItem hover = null;
             foreach (var item in roomOrder)
             {
                 bool moving = item == heldItem && draggingFurniture;
+                var footprint=RoomLayout.Footprint(item,item.rotation);
+                if(!item.GroundCover)DrawOfficeActors(item.x+item.y+(footprint.x+footprint.y)*.5f,tile,origin);
                 bool hit = PaintFurniture(item,item.x,item.y,item.rotation,tile,origin,moving ? .25f : 1f);
                 if (inside && hit && !moving) hover=item;
             }
+            DrawOfficeActors(float.MaxValue,tile,origin);
+            DrawOfficeIdentity(tile,origin);
+            DrawGazette(new Rect(24,150,372,0),true);
+            DrawHookFeed();
             if (heldItem != null && (draggingFurniture || placingFurniture))
             {
                 bool valid = inside && RoomLayout.CanPlace(C,heldItem,candidate.x,candidate.y,heldRotation);
@@ -84,15 +92,16 @@ namespace ScammerTown
                 PaintFurniture(heldItem,candidate.x,candidate.y,heldRotation,tile,origin,.75f);
                 Label(24,118,780,25,valid ? (placingFurniture ? "Click to place" : "Release to place") + "  ·  R rotates  ·  Esc cancels" : "Blocked: choose an empty space inside the floor",body);
             }
-            else if (hover != null) Label(24,118,780,25,hover.Name + " — drag to move · click an employee to manage",body);
+            else if (hover != null) Label(24,118,780,25,hover.Name + (hover.kind=="board" ? " — click to open the Scam Board · drag to move" : " — drag to move · click an employee to manage"),body);
 
             if (GUI.enabled) HandleRoomPointer(e,e.type,inside,hover,pointerTile);
             GUI.color=Color.white;
             GUI.EndGroup();
             Label(24,88,650,24,placingFurniture ? heldItem.Name + (purchaseCompany != null ? " · " + Money(purchasePrice) + " on placement" : " · from storage") : arrangingRoom ? "Drag furniture · R rotates · Esc finishes" : "Drag furniture to move · Click to select · R rotates",small);
             // Camera controls belong together; the reset action is in the room toolbar.
-            bool idleStaff=C.workers.Exists(w=>w.assignment<0 && w.job<0);
-            if(Button(814,84,250,C.lockdown>0?"Auto break: "+Mathf.CeilToInt(C.lockdown)+"s":idleStaff?"Start idle employees":"Team earning automatically",CanAct && idleStaff && C.lockdown<=0,32,idleStaff))
+            bool idleStaff=C.workers.Exists(w=>w.assignment<0 && w.job<0 && Management.HasPlacedDesk(C,w));
+            bool needsDesk=C.workers.Exists(w=>!Management.HasPlacedDesk(C,w));
+            if(Button(814,84,250,C.lockdown>0?"Auto break: "+Mathf.CeilToInt(C.lockdown)+"s":idleStaff?"Start idle employees":needsDesk?"Crew waiting for desks":"Team earning automatically",CanAct && idleStaff && C.lockdown<=0,32,idleStaff))
             { Management.StartIdleTeam(state);Save();Notify("Employees will repeat their work automatically."); }
             Label(1090,88,70,24,"Zoom",small);
             zoom=GUI.HorizontalSlider(new Rect(1168,97,228,20),zoom,.5f,Mathf.Max(3f,C.Size/5f));
@@ -169,7 +178,7 @@ namespace ScammerTown
                     grabOffset=pointerTile-new Vector2(hover.x,hover.y);pressPosition=e.mousePosition;
                     GUIUtility.hotControl=roomControl;GUIUtility.keyboardControl=0;
                     selection=hover.Name;
-                    tab=hover.kind=="board" ? "Employees" : hover.kind=="stash" ? "Properties" : "Operations";
+                    tab=hover.kind=="board" ? "Scams" : hover.kind=="stash" ? "Properties" : "Operations";
                     e.Use();
                 }
                 else {selectedItemId=null;panningRoom=true;GUIUtility.hotControl=roomControl;}
@@ -184,7 +193,12 @@ namespace ScammerTown
             if (e.rawType==EventType.MouseUp && e.button==0 && heldItem!=null && !placingFurniture)
             {
                 if(draggingFurniture) CommitPlacement(inside);
-                else {var worker=Management.At(C,heldItem);if(worker!=null)OpenWorkerProfile(C.workers.IndexOf(worker));CancelPlacement();}
+                else
+                {
+                    var worker=Management.At(C,heldItem);bool board=heldItem.kind=="board";CancelPlacement();
+                    if(worker!=null)OpenWorkerProfile(C.workers.IndexOf(worker));
+                    else if(board)Navigate("Scams");
+                }
                 e.Use();
             }
             if (e.rawType==EventType.MouseUp && (e.button==2 || e.button==0) && panningRoom)
@@ -208,6 +222,7 @@ namespace ScammerTown
                 if (!Rules.Pay(state,purchasePrice)) {Notify("Need " + Money(purchasePrice) + " to place this workstation.");return;}
                 item.id=item.kind+"_"+(item.kind=="desktop" ? C.desktops++ : C.laptops++);
                 C.layout.Add(item);
+                C.deliveryUntil=state.elapsed+10;
                 Log("Bought " + item.Name + " · −" + Money(purchasePrice));
                 PlayFeedback(false);
             }

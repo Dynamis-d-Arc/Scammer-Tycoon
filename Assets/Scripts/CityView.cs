@@ -12,10 +12,10 @@ namespace ScammerTown
         int citySelectedApartment;
         void OpenCity()
         {
-            furnitureStorageOpen=false;managementPanel=false;shopModal=false;workerModal=false;CancelPlacement();citySelectedApartment=state.active;cityView=true;
+            furnitureStorageOpen=false;managementPanel=false;shopModal=false;workerModal=false;CancelPlacement();citySelectedApartment=state.active;citySelectedFront=-1;cityView=true;
         }
         void VisitSelectedApartment() { VisitApartment(citySelectedApartment); }
-        void SelectCityApartment(int index) { if(index>=0 && index<state.companies.Length) citySelectedApartment=index; }
+        void SelectCityApartment(int index) { if(index>=0 && index<state.companies.Length) {citySelectedApartment=index;citySelectedFront=-1;} }
         void VisitApartment(int index)
         {
             if(!Rules.VisitApartment(state,index)) return;
@@ -27,7 +27,7 @@ namespace ScammerTown
         void PurchaseApartment()
         {
             if(!CanAct) return;
-            if(!Rules.BuyApartment(state)) {Notify(state.branchOwned ? "You already own this apartment." : "You need $3,000 to buy Neon Apartments.");return;}
+            if(!Rules.BuyApartment(state)) {Notify(state.branchOwned ? "You already own this apartment." : "You need $3,000 in clean money to buy Neon Apartments.");return;}
             Management.Ensure(state);PlayFeedback(false);
             Log("Bought Neon Apartments for $3,000. Includes one employee and one desktop.");Save();
         }
@@ -41,22 +41,27 @@ namespace ScammerTown
 
             }
             Panel(new Rect(0,70,1440,758),new Color(.035f,.05f,.09f));
-            Label(24,88,1000,38,"SCAMMER TOWN / CITY VIEW",title);
-            Label(24,130,1060,30,"A neighborhood of opportunities. Select an apartment marker, then visit or buy it in the property panel.",small);
+            // Alert banners share this strip; the top bar already names the view.
+            if(!Heat.RaidPending(state) && !Syndicate.OfferPending(state))Label(24,88,1000,38,"SCAMMER TOWN / CITY VIEW",title);
+            Label(24,130,1060,30,"Today: "+LivingTown.Events[LivingTown.EventAt(state.elapsed)]+" · Select a property to visit or buy.",small);
             Rect map=new Rect(24,180,1056,620);
             GUI.DrawTexture(map,cityArtwork,ScaleMode.StretchToFill,true);
             DrawCityTraffic(map);
 
             CityApartmentMarker(0,map,"01  OLD TOWN");
             CityApartmentMarker(1,map,"02  NEON DISTRICT");
-            CityApartmentMarker(2,map,"03  HARBOR");
-            ApartmentCard(citySelectedApartment,1108,208,Management.Name(citySelectedApartment).ToUpper(),Management.Benefit(citySelectedApartment));
+            CityApartmentMarker(2,map,state.companies[2].headquarters?"03  HEADQUARTERS":"03  HARBOR");
+            for(int f=0;f<Laundering.Fronts.Length;f++)CityFrontMarker(f,map);
+            if(citySelectedFront>=0)FrontCard(citySelectedFront,1108,208);
+            else ApartmentCard(citySelectedApartment,1108,208,Management.Name(citySelectedApartment).ToUpper(),Management.Benefit(citySelectedApartment));
             for(int i=0;i<3;i++)
                 if(Button(1110,426+i*38,296,(citySelectedApartment==i ? "● " : "")+Management.Name(i),true,33))SelectCityApartment(i);
             if(Button(1110,538,296,"Manage current apartment",true,30)){Navigate("Properties");}
             if(Button(1110,578,296,"Equipment shop",true,31)){OpenShop(0);}
-            if(Button(1110,614,296,"Recruitment agency",true,31)){OpenShop(3);}
+            if(Button(1110,614,296,"Money & fronts",true,31)){Navigate("Money");}
             if(Button(1110,650,296,"Go to selected apartment (C)",Management.Owned(state,citySelectedApartment),31))VisitSelectedApartment();
+            if(Button(1110,692,296,"Town events & risk",true,31))Navigate("Town & risk");
+            DrawGazette(new Rect(1108,734,300,0),true);
 
         }
         void CityApartmentMarker(int index,Rect map,string text)
@@ -69,9 +74,12 @@ namespace ScammerTown
             var badge=new Rect(point.x-95,point.y-73,190,47);
             Panel(new Rect(badge.x-2,badge.y-2,badge.width+4,badge.height+4),citySelectedApartment==index ? accent : new Color(.2f,.29f,.3f));
             var c=state.companies[index];
-            string detail=Management.Owned(state,index) ? "\n"+Money(c.earned)+" · "+c.employeeCount+"/"+c.Capacity+" staff · "+c.workers.FindAll(w=>w.job>=0).Count+" working" : "\n"+(index==1 ? "$3,000" : "10 jobs + $7,500");
+            string detail=Management.Owned(state,index) ? "\n"+Money(c.earned)+" · "+c.employeeCount+"/"+c.Capacity+" staff · "+c.workers.FindAll(w=>w.job>=0).Count+" working" : "\n"+(index==1 ? "$3,000" : "10 scam runs + $7,500");
             if(cityMarkerStyle==null)cityMarkerStyle=new GUIStyle(button){fontSize=11,padding=new RectOffset(8,5,3,3)};
             if(GUI.Button(badge,text+detail,cityMarkerStyle))SelectCityApartment(index);
+            // Hot properties flash a siren light on their marker.
+            if(Management.Owned(state,index) && c.suspicion>=75)
+                Panel(new Rect(badge.xMax-14,badge.y-8,12,12),(int)(animationTime*4)%2==0?new Color(1,.16f,.14f):new Color(.2f,.4f,1));
         }
         void ApartmentCard(int index,float x,float y,string name,string address)
         {
@@ -80,12 +88,12 @@ namespace ScammerTown
             Label(x+12,y+8,272,30,name,heading);
             Label(x+12,y+40,272,40,address,small);
             int wages=0;foreach(var w in apartment.workers)wages+=w.salary;
-            Label(x+12,y+82,272,65,owned ? (state.active==index ? "CURRENT" : "OWNED")+" · "+apartment.Size+"×"+apartment.Size+"\n"+apartment.employeeCount+" staff / "+apartment.Stations+" stations · "+apartment.workers.FindAll(w=>w.job>=0).Count+" working\nIncome "+Money(apartment.earned)+" total · Wages $"+wages+"/day" : index==1 ? "Includes Riley and a desktop.\nBuy to unlock faster operations." : "Includes Morgan and a 10×10 loft.\nRequires Neon + 10 completed jobs.");
+            Label(x+12,y+82,272,65,owned ? (state.active==index ? "CURRENT" : "OWNED")+" · "+apartment.Size+"×"+apartment.Size+"\n"+apartment.employeeCount+" staff / "+apartment.Stations+" stations · "+apartment.workers.FindAll(w=>w.job>=0).Count+" working\nIncome "+Money(apartment.earned)+" total · Wages $"+wages+"/day" : index==1 ? "Includes Riley and a desktop.\nBuy to unlock faster operations." : "Includes Morgan and a 10×10 loft.\nRequires Neon + 10 scam runs.");
             if(owned)
             {
                 if(Button(x+12,y+160,272,"Go to "+Management.Name(index),true,38))VisitApartment(index);
             }
-            else if(Button(x+12,y+160,272,index==1 ? "Buy · $3,000" : "Buy · $7,500",CanAct && (index==1 ? state.cash>=3000 : state.branchOwned && state.jobsCompleted>=10 && state.cash>=7500),38))
+            else if(Button(x+12,y+160,272,index==1 ? "Buy · $3,000 clean" : "Buy · $7,500 clean",CanAct && (index==1 ? Laundering.Clean(state)>=3000 : state.branchOwned && Management.ScamProgress(state)>=10 && Laundering.Clean(state)>=7500),38))
             {
                 if(index==1)PurchaseApartment();
                 else if(Management.BuyHarbor(state)){Log("Harbor Loft purchased. Morgan is ready for work.");PlayFeedback(false);Save();}
@@ -102,10 +110,22 @@ namespace ScammerTown
                 DrawCityVehicle(map,0,x,i%2==0 ? travel : 15-travel);
             }
             for(int i=0;i<3;i++) DrawCityVehicle(map,1,Mathf.Repeat(animationTime*.48f+i*5,13)+3,9.2f);
+            // Patrol cars appear as suspicion climbs anywhere in your empire.
+            for(int i=0;i<PatrolCars();i++)
+            {
+                float patrol=Mathf.Repeat(animationTime*.8f+i*7.3f,17)-1;
+                DrawCityVehicle(map,1,i==0?8.22f:13.64f,i==0?patrol:15-patrol,true);
+            }
             DrawCityVehicle(map,2,.55f,Mathf.PingPong(animationTime*.17f,2.1f)+5.25f);
             DrawCityVehicle(map,2,1.65f,Mathf.PingPong(animationTime*.14f+1,2.2f)+10.2f);
         }
-        void DrawCityVehicle(Rect map,int kind,float x,float y)
+        int PatrolCars()
+        {
+            float heat=0;
+            for(int i=0;i<state.companies.Length;i++)if(Management.Owned(state,i))heat=Mathf.Max(heat,state.companies[i].suspicion);
+            return heat>=75?2:heat>=40?1:0;
+        }
+        void DrawCityVehicle(Rect map,int kind,float x,float y,bool police=false)
         {
             if(x<0 || x>14.3f || y<0 || y>14.3f) return;
             Vector2 p=IsometricCityArtwork.Project(x,y);
@@ -118,7 +138,21 @@ namespace ScammerTown
             }
             p=new Vector2(813+(p.x-800)*1.108f,35+(p.y-105)*1.235f);
             float size=kind==2?53:35;
-            AtlasSprite(SoftAsset("props"),kind==2?2:kind,2,4,3,new Rect(map.x+p.x/1635f*map.width-size*.5f,map.y+p.y/962f*map.height-size*.75f,size,size*.89f));
+            var rect=new Rect(map.x+p.x/1635f*map.width-size*.5f,map.y+p.y/962f*map.height-size*.75f,size,size*.89f);
+            AtlasSprite(SoftAsset("props"),kind==2?2:kind,2,4,3,rect);
+            if(police)
+            {
+                // Light bar on the navy car's roof, alternating red and blue.
+                bool red=(int)(animationTime*6)%2==0;
+                Vector2 roof=new Vector2(rect.x+rect.width*.53f,rect.y+rect.height*.19f);
+                Color redLight=new Color(1,.15f,.12f),blueLight=new Color(.25f,.5f,1),lit=red?redLight:blueLight;
+                Color old=GUI.color;
+                GUI.color=new Color(lit.r,lit.g,lit.b,.22f);GUI.DrawTexture(new Rect(roof.x-11,roof.y-7,22,14),Texture2D.whiteTexture);
+                GUI.color=new Color(lit.r,lit.g,lit.b,.35f);GUI.DrawTexture(new Rect(roof.x-7,roof.y-4,14,8),Texture2D.whiteTexture);
+                GUI.color=red?redLight:redLight*.45f;GUI.DrawTexture(new Rect(roof.x-4,roof.y-1,4,3),Texture2D.whiteTexture);
+                GUI.color=red?blueLight*.45f:blueLight;GUI.DrawTexture(new Rect(roof.x,roof.y-1,4,3),Texture2D.whiteTexture);
+                GUI.color=old;
+            }
         }
 
     }

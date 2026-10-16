@@ -17,7 +17,7 @@ public class PixelArtImport : AssetPostprocessor
     public static int Verify()
     {
         int count=0;
-        foreach(string name in new[]{"stations","typing","laptop_seated","props","room_empty","furniture","city","floor"})
+        foreach(string name in new[]{"stations","typing","laptop_seated","scam_crew","scam_crew_vest","scam_crew_beanie","scam_crew_leather","props","room_empty","furniture","denprops","city","floor"})
         {
             var t=Resources.Load<Texture2D>("PixelOffice/"+name);
             if(t==null || !t.isReadable || t.filterMode!=FilterMode.Point)throw new Exception("Pixel art missing/incorrect import: "+name+" (texture="+(t==null?"missing":t.width+"x"+t.height+", readable="+t.isReadable+", filter="+t.filterMode)+")");
@@ -26,6 +26,21 @@ public class PixelArtImport : AssetPostprocessor
             count++;
         }
         var atex=Resources.Load<Texture2D>("PixelOffice/stations");var btex=Resources.Load<Texture2D>("PixelOffice/typing");
+        if(Resources.Load<Shader>("RoomSurface")==null)throw new Exception("Modular room surface shader missing");
+        count++;
+        for(int look=1;look<=CrewAppearance.Count;look++)
+        {
+            var crew=Resources.Load<Texture2D>("PixelOffice/"+CrewAppearance.Atlas(look));
+            if(crew==null || crew.width!=crew.height)throw new Exception("Crew atlas must exist and be square: "+look);
+            for(int row=0;row<4;row++)for(int col=0;col<4;col++)
+            {
+                int opaque=0;
+                for(int y=2;y<28;y++)for(int x=2;x<28;x++)
+                    if(crew.GetPixel((int)((col+x/30f)*crew.width/4),(int)((3-row+y/30f)*crew.height/4)).a>.5f)opaque++;
+                if(opaque<30)throw new Exception("Missing crew atlas cell: "+look+" / "+col+","+row);
+                count++;
+            }
+        }
         if(atex.width!=btex.width || atex.height!=btex.height)throw new Exception("Animation atlas sizes differ");
         count++;
         var seated=Resources.Load<Texture2D>("PixelOffice/laptop_seated");
@@ -69,6 +84,15 @@ public class PixelArtImport : AssetPostprocessor
                 if(room.x<0 || room.xMax>1440 || room.y<126 || room.yMax>760)throw new Exception("Camera must frame the full room at every expansion size");
                 if(before!=JsonUtility.ToJson(game.state))throw new Exception("Camera must not mutate save");
                 count+=2;
+                // Expansion must invalidate the fitted camera even in the same office.
+                if(level<20)
+                {
+                    game.state.Current.level++;
+                    typeof(ScammerTownGame).GetMethod("PixelCamera",flags).Invoke(game,null);
+                    if((int)typeof(ScammerTownGame).GetField("pixelCameraSize",flags).GetValue(game)!=game.state.Current.Size)
+                        throw new Exception("Expansion must refit the current office");
+                    count++;
+                }
             }
         }
         finally {UnityEngine.Object.DestroyImmediate(go);}

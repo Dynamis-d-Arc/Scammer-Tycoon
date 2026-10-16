@@ -77,11 +77,26 @@ public static class ProjectSetup
         checks += IdleChecks.Run();
         checks += ReliabilityChecks.Run();
         checks += ProgressionChecks.Run();
+        checks += EmpireChecks.Run();
+        checks += LivingTownChecks.Run();
+        checks += MarksChecks.Run();
+        checks += UnderworldChecks.Run();
         checks += PixelArtImport.Verify();
+        checks += UpgradeVisualChecks.VerifyAssets();
         Debug.Log("SCAMMER_TOWN_CHECKS_PASSED: " + checks);
     }
     public static void SetupAndVerify() { CreateScene(); Verify(); }
     public static void VerifyAndBuild() { Verify(); BuildMac(); }
+    [MenuItem("Scammer Town/Build Windows player")]
+    public static void BuildWindows()
+    {
+        var result=BuildPipeline.BuildPlayer(new BuildPlayerOptions {
+            scenes=new[]{"Assets/Scenes/ScammerTown.unity"}, locationPathName="Builds/Windows/Scammer Town.exe",
+            target=BuildTarget.StandaloneWindows64, options=BuildOptions.Development
+        });
+        if(result.summary.result!=UnityEditor.Build.Reporting.BuildResult.Succeeded) throw new Exception("Build failed: " + result.summary.result);
+        Debug.Log("SCAMMER_TOWN_WINDOWS_BUILD_PASSED");
+    }
     public static void BuildMac()
     {
         var result=BuildPipeline.BuildPlayer(new BuildPlayerOptions {

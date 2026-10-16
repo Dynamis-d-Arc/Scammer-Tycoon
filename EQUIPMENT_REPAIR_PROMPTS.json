@@ -1,0 +1,13 @@
+{
+  "mode": "Built-in image_gen",
+  "edits": [
+    {
+      "key": "leather",
+      "prompt": "Precise-object-edit. Repair ONLY the bottom THREE ROWS (all laptop workstations) of this 4-column 6-row transparent game atlas. In row4/5/6 columns1 and3 the seated character is missing his head and torso! In EACH of these12 laptop cells, ensure a COMPLETE seated older man with DARK BROWN SKIN, solid opaque silver close-cropped curly hair, brown leather jacket over mustard shirt, black call-center headset with visible headband and ear cups. His head and neck MUST be fully visible above the chair backrest, between the keyboard and chair, exactly as in the TOP THREE desktop rows. Do not erase gray hair as background. Use distinct fully opaque light silver and warm skin colors. Keep hands attached to complete forearms, shoulders, torso and head. ALL24 cells must have a visible head above chair. Preserve the TOP THREE ROWS unchanged. Preserve all laptop/monitor configurations, chairs, desks, transparent backgrounds, sprite positions, original1024x1536canvas, column/row spacing and existing scale. Do not add text or background."
+    },
+    {
+      "key": "crew",
+      "prompt": "Precise-object-edit of this transparent 4-column 6-row equipment atlas. Preserve top3desktop rows exactly with charcoal hoodie man. Replace ONLY the employee in bottom3laptop rows with the original LAPTOP employee: woman with dark plum/purple jacket, dark hair in bun, black baseball cap and black headset with boom microphone. This SAME woman must be fully seated and complete in ALL12 laptop cells, head torso arms hands legs visible as perspective permits. No charcoal hood on laptop employees. Preserve every desk, equipment tier/monitor count, chair, sprite size, bottom anchor, 1024x1536canvas and row/column placement. Maintain real alpha transparency outside solid sprite silhouettes, no background, no labels."
+    }
+  ]
+}
