@@ -132,6 +132,12 @@ public static class ProgressionChecks
         OfficeProgression.FinishVoucher(s,0,w,false,(m,a)=>{});
         check(s.Current.lockdown==30 && s.Current.suspicion==45,"failed voucher can trigger investigation");
         saved.Current.workers[0].voucher.symbols[0]=9;check(!Rules.Valid(saved),"invalid voucher symbols rejected");
+        for(int i=0;i<5;i++)
+        {
+            Rect card=ScammerTownGame.VoucherCardRect(i);
+            check(card.x>=20 && card.xMax<=716 && card.y>=224 && card.yMax<=340,"gift cards fit inside laptop display");
+            if(i>0)check(card.x-ScammerTownGame.VoucherCardRect(i-1).xMax>=6,"gift-card hit targets do not overlap");
+        }
         return count;
     }
 }

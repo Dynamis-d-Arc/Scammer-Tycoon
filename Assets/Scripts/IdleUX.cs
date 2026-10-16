@@ -223,40 +223,83 @@ namespace ScammerTown
         }
         void DrawVoucherGame(Worker w)
         {
-            GUILayout.BeginArea(new Rect(352,312,736,420));
-            Text("PHANTOM VOUCHERS · FICTIONAL LAPTOP SIMULATOR");
-            Text("Match four invented voucher symbols to the displayed target. No real gift cards, codes, brands, or redemption services. Closing this panel does not stop the timer.",true);
+            GUI.BeginGroup(new Rect(352,302,736,434));
+            Panel(new Rect(0,0,736,376),new Color(.19f,.23f,.30f));
+            Panel(new Rect(10,10,716,358),new Color(.025f,.045f,.075f));
+            Panel(new Rect(363,3,10,4),muted);
+            Panel(new Rect(20,20,696,34),new Color(.10f,.16f,.24f));
+            Label(32,25,450,24,"PHANTOM OS   /   Voucher Wallet",heading);
+            Label(556,26,150,22,"SIMULATION ONLY",small);
             var r=w.voucher;
+            int target=r==null?0:r.symbols[r.progress];
+            DrawGiftCard(new Rect(28,78,176,112),target,false);
+            Label(28,56,190,22,r==null?"PREVIEW CARD":"MATCH THIS CARD",small);
+            Label(222,62,480,27,r==null?"Your fictional gift-card wallet":r.progress+" / 4 redeemed   ·   "+Mathf.CeilToInt(Mathf.Max(0,r.deadline-state.elapsed))+"s left",heading);
+            Label(222,95,480,44,r==null?"Match the target symbol with a card below. Skill gives extra time and mistake tolerance.":"Mistakes "+r.mistakes+" / "+r.allowance+"   ·   Reward "+Money(r.reward)+"\nSelect the matching card in the redemption tray.",body);
             if(r==null)
             {
-                Text("Skill "+w.skill+": "+((w.skill-1)/2)+" mistakes allowed · "+(25+w.skill*3+OfficeProgression.SkillBonus(C,0))+"s · reward "+Money(180+w.skill*25+OfficeProgression.SkillBonus(C,0)*5));
-                Text("Success: +4 suspicion. Failure, timeout or abandonment: +7 suspicion, no payout. 60s cooldown after every attempt. Office skill-tree bonuses improve the timer and reward.",true);
-                if(!OfficeProgression.HasLaptop(C,w))Text("Assign this employee to a placed laptop in the Desk tab first.");
-                else if(w.job>=0)
+                string status="Skill "+w.skill+" · "+((w.skill-1)/2)+" mistakes allowed · "+(25+w.skill*3+OfficeProgression.SkillBonus(C,0))+"s · "+Money(180+w.skill*25+OfficeProgression.SkillBonus(C,0)*5);
+                if(!OfficeProgression.HasLaptop(C,w))status="Assign a placed laptop in the Desk tab first.";
+                else if(C.lockdown>0)status="Office paused · "+Mathf.CeilToInt(C.lockdown)+"s remaining";
+                else if(w.job>=0)status="Finish the current campaign before starting.";
+                else if(state.elapsed<w.voucherReadyAt)status="Wallet cooling down · "+Mathf.CeilToInt(w.voucherReadyAt-state.elapsed)+"s";
+                Label(222,139,480,26,status,small);
+                if(w.job>=0 && w.assignment>=0)
                 {
-                    Text("Finish the current campaign first.");
-                    Action("Stop repeating after current campaign",()=>{w.assignment=-1;Save();},CanAct && w.assignment>=0);
+                    if(Button(222,168,338,"Stop repeating after current campaign",CanAct,32)){w.assignment=-1;Save();}
                 }
-                else if(state.elapsed<w.voucherReadyAt)Text("Laptop cooling down: "+Mathf.CeilToInt(w.voucherReadyAt-state.elapsed)+"s");
-                PrimaryAction("Start fictional redemption",()=>{if(OfficeProgression.BeginVoucher(state,w,UnityEngine.Random.Range(0,int.MaxValue)))Save();},CanAct && C.lockdown<=0 && w.job<0 && OfficeProgression.HasLaptop(C,w) && state.elapsed>=w.voucherReadyAt);
+                else if(Button(222,168,338,"Open redemption session",CanAct && C.lockdown<=0 && w.job<0 && OfficeProgression.HasLaptop(C,w) && state.elapsed>=w.voucherReadyAt,32,true))
+                {if(OfficeProgression.BeginVoucher(state,w,UnityEngine.Random.Range(0,int.MaxValue)))Save();}
             }
             else
             {
-                Text(r.progress+"/4 matched · "+Mathf.CeilToInt(Mathf.Max(0,r.deadline-state.elapsed))+"s · mistakes "+r.mistakes+"/"+r.allowance+" · "+Money(r.reward));
-                Text("TARGET VOUCHER:  "+OfficeProgression.VoucherSymbols[r.symbols[r.progress]]);
-                GUILayout.BeginHorizontal();
-                for(int i=0;i<5;i++)
-                {
-                    int choice=i;bool previous=GUI.enabled;GUI.enabled=previous && CanAct;
-                    if(GUILayout.Button(OfficeProgression.VoucherSymbols[i],button,GUILayout.Width(138),GUILayout.Height(64)))
-                    {OfficeProgression.ChooseVoucher(state,w,choice,(message,amount)=>{Log(message);Notify(message);if(amount>0)RewardFeedback(amount);});Save();}
-                    GUI.enabled=previous;
-                }
-                GUILayout.EndHorizontal();
-                Action("Abandon attempt (no payout, +7 suspicion)",()=>{OfficeProgression.FinishVoucher(state,state.active,w,false,(m,a)=>{Log(m);Notify(m);});Save();},CanAct && w.voucher!=null);
+                Bar(222,148,480,r.progress*25,accent);
+                if(Button(222,168,338,"Abandon · no payout / +7 suspicion",CanAct,32))
+                {OfficeProgression.FinishVoucher(state,state.active,w,false,(m,a)=>{Log(m);Notify(m);});Save();}
             }
-            if(state.paused)Action("Resume game",()=>state.paused=false);
-            GUILayout.EndArea();
+            if(state.paused && Button(574,168,128,"Resume",true,32))state.paused=false;
+            Label(28,200,680,22,"REDEMPTION TRAY   ·   Select a fictional gift card",small);
+            for(int i=0;i<5;i++)
+                if(DrawGiftCard(VoucherCardRect(i),i,w.voucher!=null && CanAct))
+                {OfficeProgression.ChooseVoucher(state,w,i,(m,a)=>{Log(m);Notify(m);if(a>0)RewardFeedback(a);});Save();}
+            Label(28,344,680,22,"Success +4 suspicion · Failure +7 · 60s cooldown · Timer runs while this panel is closed",small);
+            // Laptop deck: inset keys, a trackpad and a centered hinge.
+            Panel(new Rect(0,376,736,48),new Color(.22f,.27f,.34f));
+            Panel(new Rect(310,374,116,4),new Color(.045f,.06f,.09f));
+            for(int row=0;row<3;row++)for(int key=0;key<16;key++)
+                Panel(new Rect(28+key*30,383+row*10,26,7),new Color(.075f,.10f,.15f));
+            Panel(new Rect(554,383,150,30),new Color(.14f,.19f,.26f));
+            GUI.EndGroup();
+        }
+        public static Rect VoucherCardRect(int index) => new Rect(28+index*138,224,132,112);
+        [System.NonSerialized] GUIStyle voucherCardStyle;
+        bool DrawGiftCard(Rect r,int symbol,bool interactive)
+        {
+            Color[] colors={new Color(.28f,.23f,.57f),new Color(.55f,.26f,.12f),new Color(.10f,.38f,.29f),new Color(.13f,.32f,.55f),new Color(.48f,.18f,.39f)};
+            string[] brands={"LUNAR LOOT","STAR ARCADE","FERN MARKET","VOLT PLAY","PRISM CLUB"};
+            if(voucherCardStyle==null || voucherCardStyle.normal.background!=uiPanel)
+            {
+                voucherCardStyle=new GUIStyle(button);
+                voucherCardStyle.normal.background=uiPanel;voucherCardStyle.hover.background=uiPanel;
+                voucherCardStyle.focused.background=uiPanel;voucherCardStyle.active.background=uiPressed;
+            }
+            Color old=GUI.backgroundColor;GUI.backgroundColor=interactive && r.Contains(Event.current.mousePosition)?Color.Lerp(colors[symbol],Color.white,.18f):colors[symbol];
+            bool clicked=false;
+            if(interactive)clicked=GUI.Button(r,new GUIContent("","Redeem fictional "+OfficeProgression.VoucherSymbols[symbol]+" card"),voucherCardStyle);
+            else GUI.Box(r,GUIContent.none,voucherCardStyle);
+            GUI.backgroundColor=old;
+            Label(r.x+9,r.y+6,r.width-18,22,brands[symbol],small);
+            DrawVoucherGlyph(new Rect(r.x+10,r.y+34,32,32),symbol);
+            Label(r.x+48,r.y+37,r.width-54,26,OfficeProgression.VoucherSymbols[symbol],small);
+            Panel(new Rect(r.x+10,r.y+78,r.width-20,1),new Color(.5f,.65f,.75f,.5f));
+            Label(r.x+9,r.y+85,r.width-18,22,"PLAY CREDIT",small);
+            return clicked;
+        }
+        void DrawVoucherGlyph(Rect r,int symbol)
+        {
+            string[] patterns={"0011100/0110000/1100000/1100000/1100000/0110000/0011100","0001000/0001000/1111111/0111110/0011100/0110110/1100011","0000011/0001111/0011110/0111100/1111000/1110000/1000000","0001100/0011000/0110000/1111110/0001100/0011000/0110000","0011100/0111110/1111111/0111110/0011100/0001000/0001000"};
+            string[] rows=patterns[symbol].Split('/');
+            for(int y=0;y<7;y++)for(int x=0;x<7;x++)if(rows[y][x]=='1')Panel(new Rect(r.x+x*r.width/7,r.y+y*r.height/7,r.width/7,r.height/7),ink);
         }
         void DrawCampaignSkillTree()
         {
