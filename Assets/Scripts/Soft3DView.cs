@@ -89,7 +89,7 @@ namespace ScammerTown
             if(!item.Station)return SoftSprite(item.kind+"_"+rotation,anchor,tile,alpha);
             var worker=Management.At(C,item);
             bool staffed=RoomLayout.HasEmployee(C,item);
-            int frame=staffed ? 1+(worker!=null && worker.job>=0 && C.lockdown<=0 ? (int)(animationTime*2.4f)%2 : 0) : 0;
+            int frame=staffed ? 1+(worker!=null && (worker.job>=0 || worker.voucher!=null) && C.lockdown<=0 ? (int)(animationTime*2.4f)%2 : 0) : 0;
             bool hit=SoftSprite(item.kind+"_"+rotation+"_"+frame,anchor,tile,alpha);
             if(staffed && alpha>.9f)DrawWorkerBubble(item,anchor,tile);
             return hit;

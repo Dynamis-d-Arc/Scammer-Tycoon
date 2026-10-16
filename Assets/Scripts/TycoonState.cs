@@ -10,6 +10,7 @@ namespace ScammerTown
         public int employeeTier = 1, productTier = 1, securityTier;
         public float heat;
         public float suspicion;
+        public int campaignSkills;
         public bool ai, neonTheme;
         public int employeeCount = 1;
         public List<RoomItem> layout;
@@ -105,6 +106,8 @@ namespace ScammerTown
                 foreach(var c in s.companies)
                 {
                     if(!Finite(c.suspicion) || c.suspicion<0 || c.suspicion>100)return false;
+                    if(!OfficeProgression.ValidSkills(c.campaignSkills))return false;
+                    if(c.workers!=null)foreach(var worker in c.workers)if(worker!=null && !OfficeProgression.ValidVoucher(worker))return false;
                     if(c.workers!=null)foreach(var worker in c.workers)if(worker!=null && (worker.specialty<0 || worker.specialty>4))return false;
                     if(c.workers==null || c.workers.Count!=c.employeeCount || !Finite(c.lockdown) || c.lockdown<0 || !Finite(c.earned) || c.earned<0) return false;
                     foreach(int upgrade in new[]{c.computerUpgrade,c.comfortUpgrade,c.lightingUpgrade,c.decorUpgrade}) if(upgrade<0 || upgrade>3)return false;

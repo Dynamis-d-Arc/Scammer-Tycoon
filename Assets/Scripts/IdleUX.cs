@@ -14,6 +14,7 @@ namespace ScammerTown
         }
         string WorkerStatus(Worker w)
         {
+            if(w.voucher!=null)return "Fictional voucher game · "+w.voucher.progress+"/4 matched";
             if(C.lockdown>0)return "Office paused · "+Mathf.CeilToInt(C.lockdown)+"s";
             if(w.job>=0 && w.job!=3 && !C.layout.Exists(it=>it.id==w.station && it.Station && it.placed))return "Waiting for a placed desk";
             if(w.job>=0)return Management.Jobs[w.job].name+" · "+Mathf.CeilToInt(w.remaining)+"s";
@@ -98,6 +99,8 @@ namespace ScammerTown
                     Space();Text("Choose a workstation, then click where you want it. You pay only when placed. Esc or right-click cancels.",true);break;
                 case 1:DrawRoomUpgrades();break;
                 case 2:
+                    DrawCampaignSkillTree();
+                    Space();Text("OTHER TRAINING");
                     Text("Crew training · Tier "+C.employeeTier);Text("+3 percentage points of success per tier for Phantom Giveaway and Moonshot Club.",true);
                     Action("Train crew · "+Money(Rules.TierCost(C.employeeTier+1)),()=>Tier("crew",C.employeeTier,()=>C.employeeTier++),CanAct && C.employeeTier<5 && state.cash>=Rules.TierCost(C.employeeTier+1));
                     Text("Campaign training · Tier "+C.productTier);Text("+3 percentage points per tier for Mirage Storefront.",true);
@@ -154,19 +157,22 @@ namespace ScammerTown
             Label(352,162,600,42,w.name,title);
             Label(352,209,650,28,"Skill "+w.skill+" / 5   ·   $"+w.salary+" per day   ·   "+w.completed+" jobs completed",small);
             if(Button(1036,162,60,"×",true,36))workerModal=false;
-            string[] tabs={"Profile","Campaigns","Desk"};
-            for(int i=0;i<3;i++)
+            string[] tabs={"Profile","Campaigns","Desk","Laptop game"};
+            for(int i=0;i<4;i++)
             {
-                if(Button(352+i*247,252,235,tabs[i],true,38,workerPage==i)){workerPage=i;workerScroll=Vector2.zero;}
+                if(Button(352+i*186,252,178,tabs[i],true,38,workerPage==i)){workerPage=i;workerScroll=Vector2.zero;}
             }
             GUI.backgroundColor=Color.white;
-            if(workerPage==1)DrawAssignmentChoices(w);
+            if(workerPage==3)DrawVoucherGame(w);
+            else if(workerPage==1)DrawAssignmentChoices(w);
             else
             {
                 GUILayout.BeginArea(new Rect(352,316,736,408));workerScroll=GUILayout.BeginScrollView(workerScroll);
                 if(workerPage==0)
                 {
                     Text(OfficeProgression.Specialty(w.specialty)+" · matching jobs: +15% speed, +5 points success",true);
+                    Text("Office skill tree: Phantom +"+OfficeProgression.SkillBonus(C,0)+" / Mirage +"+OfficeProgression.SkillBonus(C,1)+" / Moonshot +"+OfficeProgression.SkillBonus(C,2)+" success points.",true);
+                    Action("Open campaign skill tree",()=>OpenShop(2));
                     Text("Office décor: +"+Mathf.RoundToInt(OfficeProgression.DecorSpeed(C)*100)+"% speed; +"+OfficeProgression.DecorMorale(C).ToString("0.00")+" morale/sec",true);
                     Text(WorkerStatus(w));
                     if(w.job>=0){GUILayout.Label(Mathf.RoundToInt((1-w.remaining/w.duration)*100)+"% complete",small);Rect progress=GUILayoutUtility.GetRect(700,10);Bar(progress.x,progress.y,progress.width,(1-w.remaining/w.duration)*100,lime);Space();}
@@ -213,7 +219,78 @@ namespace ScammerTown
                     {Save();PlayFeedback(false);workerPage=0;Notify(w.name+" assigned to "+j.name+(w.job!=i ? " after the current job." : ". Jobs repeat automatically."));}
                 }
             }
-            Label(352,701,736,45,"Fictional campaigns only. At 100 suspicion: 30s freeze and 5% cash penalty (max $500). Lay low pauses the office to reduce suspicion.",small);
+            Label(352,701,736,45,"Success includes office skills, training, specialty and mood (98% cap). Skill tree: Shop > Skills & training. Campaigns are fictional; suspicion still applies.",small);
+        }
+        void DrawVoucherGame(Worker w)
+        {
+            GUILayout.BeginArea(new Rect(352,312,736,420));
+            Text("PHANTOM VOUCHERS · FICTIONAL LAPTOP SIMULATOR");
+            Text("Match four invented voucher symbols to the displayed target. No real gift cards, codes, brands, or redemption services. Closing this panel does not stop the timer.",true);
+            var r=w.voucher;
+            if(r==null)
+            {
+                Text("Skill "+w.skill+": "+((w.skill-1)/2)+" mistakes allowed · "+(25+w.skill*3+OfficeProgression.SkillBonus(C,0))+"s · reward "+Money(180+w.skill*25+OfficeProgression.SkillBonus(C,0)*5));
+                Text("Success: +4 suspicion. Failure, timeout or abandonment: +7 suspicion, no payout. 60s cooldown after every attempt. Office skill-tree bonuses improve the timer and reward.",true);
+                if(!OfficeProgression.HasLaptop(C,w))Text("Assign this employee to a placed laptop in the Desk tab first.");
+                else if(w.job>=0)
+                {
+                    Text("Finish the current campaign first.");
+                    Action("Stop repeating after current campaign",()=>{w.assignment=-1;Save();},CanAct && w.assignment>=0);
+                }
+                else if(state.elapsed<w.voucherReadyAt)Text("Laptop cooling down: "+Mathf.CeilToInt(w.voucherReadyAt-state.elapsed)+"s");
+                PrimaryAction("Start fictional redemption",()=>{if(OfficeProgression.BeginVoucher(state,w,UnityEngine.Random.Range(0,int.MaxValue)))Save();},CanAct && C.lockdown<=0 && w.job<0 && OfficeProgression.HasLaptop(C,w) && state.elapsed>=w.voucherReadyAt);
+            }
+            else
+            {
+                Text(r.progress+"/4 matched · "+Mathf.CeilToInt(Mathf.Max(0,r.deadline-state.elapsed))+"s · mistakes "+r.mistakes+"/"+r.allowance+" · "+Money(r.reward));
+                Text("TARGET VOUCHER:  "+OfficeProgression.VoucherSymbols[r.symbols[r.progress]]);
+                GUILayout.BeginHorizontal();
+                for(int i=0;i<5;i++)
+                {
+                    int choice=i;bool previous=GUI.enabled;GUI.enabled=previous && CanAct;
+                    if(GUILayout.Button(OfficeProgression.VoucherSymbols[i],button,GUILayout.Width(138),GUILayout.Height(64)))
+                    {OfficeProgression.ChooseVoucher(state,w,choice,(message,amount)=>{Log(message);Notify(message);if(amount>0)RewardFeedback(amount);});Save();}
+                    GUI.enabled=previous;
+                }
+                GUILayout.EndHorizontal();
+                Action("Abandon attempt (no payout, +7 suspicion)",()=>{OfficeProgression.FinishVoucher(state,state.active,w,false,(m,a)=>{Log(m);Notify(m);});Save();},CanAct && w.voucher!=null);
+            }
+            if(state.paused)Action("Resume game",()=>state.paused=false);
+            GUILayout.EndArea();
+        }
+        void DrawCampaignSkillTree()
+        {
+            Text("CAMPAIGN SKILL TREE");
+            Text("Permanent upgrades for everyone in "+CompanyName+". Buy the starter, choose campaign branches, then unlock mastery. Bonuses add percentage points; campaign success caps at 98%. No effect on suspicion or guaranteed repair shifts.",true);
+            DrawCampaignSkillNode(0);
+            Text("BASICS  →  CHOOSE A BRANCH  →  EXPERTISE  →  MASTERY",true);
+            GUILayout.BeginHorizontal();
+            for(int job=0;job<3;job++)
+            {
+                if(job>0)GUILayout.Space(10);
+                GUILayout.BeginVertical(GUILayout.Width(210));
+                Text(Management.Jobs[job].name);
+                Text("Current bonus: +"+OfficeProgression.SkillBonus(C,job)+" points",true);
+                DrawCampaignSkillNode(job+1);
+                Text("↓ Requires focus",true);
+                DrawCampaignSkillNode(job+4);
+                GUILayout.EndVertical();
+            }
+            GUILayout.EndHorizontal();
+            DrawCampaignSkillNode(7);
+        }
+        void DrawCampaignSkillNode(int node)
+        {
+            bool owned=OfficeProgression.HasSkill(C,node);
+            int required=OfficeProgression.SkillPrerequisites(node),cost=OfficeProgression.SkillCost(node);
+            bool ready=(C.campaignSkills&required)==required;
+            Text(OfficeProgression.SkillNames[node]);Text(OfficeProgression.SkillEffect(node),true);
+            if(!ready)Text(node==7?"Requires all three expertise skills":node<=3?"Requires Campaign basics":"Requires the matching focus skill",true);
+            else if(!owned && state.cash<cost)Text("Need "+Money(cost-state.cash)+" more",true);
+            PrimaryAction(owned?"Unlocked":!ready?"Locked":"Unlock · "+Money(cost),()=>
+            {
+                if(OfficeProgression.UnlockSkill(state,node)){Save();PlayFeedback(false);Notify(OfficeProgression.SkillNames[node]+" unlocked for "+CompanyName+".");}
+            },CanAct && !owned && ready && state.cash>=cost);
         }
     }
 }

@@ -113,7 +113,7 @@ namespace ScammerTown
             Label(258,137,550,36,"SHOP & RECRUITMENT",title);
             Label(258,181,650,26,"Buying for "+CompanyName+"   ·   "+Money(state.cash)+" available",small);
             if(Button(1084,140,98,"Close",true,36))shopModal=false;
-            string[] names={"Workstations","Office upgrades","Training","Hire employees","Decorations"};
+            string[] names={"Workstations","Office upgrades","Skills & training","Hire employees","Decorations"};
             for(int i=0;i<names.Length;i++)
             {
                 if(Button(258,232+i*58,190,names[i],true,46,shopPage==i)){shopPage=i;shopScroll=Vector2.zero;}

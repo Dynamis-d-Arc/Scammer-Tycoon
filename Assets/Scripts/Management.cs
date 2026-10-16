@@ -11,6 +11,10 @@ namespace ScammerTown
         public int skill=1, salary=35, completed, job=-1, assignment=-1;
         public float energy=100, mood=80, remaining, duration, reaction;
         public bool resting;
+        public bool voucherActive;
+        public VoucherRound voucherData;
+        public VoucherRound voucher { get => voucherActive?voucherData:null; set {voucherData=value;voucherActive=value!=null;} }
+        public float voucherReadyAt;
         public string status="Ready";
     }
     public sealed class JobCard
@@ -72,18 +76,18 @@ namespace ScammerTown
         public static Worker At(Company c,RoomItem item) => c.workers==null ? null : c.workers.Find(w=>w.station==item.id);
         public static bool Assign(Company c,Worker worker,string station)
         {
-            if(worker.job>=0 || !c.workers.Contains(worker) || !c.layout.Exists(it=>it.id==station && it.Station && it.placed)) return false;
+            if(worker.job>=0 || worker.voucher!=null || !c.workers.Contains(worker) || !c.layout.Exists(it=>it.id==station && it.Station && it.placed)) return false;
             var other=c.workers.Find(w=>w.station==station);
-            if(other!=null && other!=worker) {if(other.job>=0)return false;other.station=worker.station;}
+            if(other!=null && other!=worker) {if(other.job>=0 || other.voucher!=null)return false;other.station=worker.station;}
             worker.station=station;return true;
         }
-        public static float Chance(Company c,Worker w,int job) => job==3 ? 100 : Mathf.Clamp(Jobs[job].chance+(w.skill-1)*3+(job==1 ? c.productTier-1 : c.employeeTier-1)*3+(w.mood-70)*.12f+(OfficeProgression.Matches(w,job)?5:0),20,98);
+        public static float Chance(Company c,Worker w,int job) => job==3 ? 100 : Mathf.Clamp(Jobs[job].chance+(w.skill-1)*3+(job==1 ? c.productTier-1 : c.employeeTier-1)*3+(w.mood-70)*.12f+(OfficeProgression.Matches(w,job)?5:0)+OfficeProgression.SkillBonus(c,job),20,98);
         public static float Duration(Company c,Worker w,int company,int job) => Jobs[job].seconds/(Speed(company)*(1+.12f*c.computerUpgrade+.05f*c.lightingUpgrade+.04f*c.comfortUpgrade+OfficeProgression.DecorSpeed(c))*(OfficeProgression.Matches(w,job)?1.15f:1));
         public static bool Start(TycoonState s,int companyIndex,Worker w,int job)
         {
             if(job<0 || job>=Jobs.Length || !Owned(s,companyIndex) || s.paused) return false;
             var c=s.companies[companyIndex];var j=Jobs[job];
-            if(!c.workers.Contains(w) || w.job>=0 || c.lockdown>0 || (job==2 && s.jobsCompleted<5)) return false;
+            if(!c.workers.Contains(w) || w.job>=0 || w.voucher!=null || c.lockdown>0 || (job==2 && s.jobsCompleted<5)) return false;
             if(job!=3 && !c.layout.Exists(it=>it.id==w.station && it.placed && it.Station)) return false;
             w.job=job;w.duration=Duration(c,w,companyIndex,job);w.remaining=w.duration;w.status=j.name;
             return true;
@@ -145,11 +149,17 @@ namespace ScammerTown
             {
                 if(!Owned(s,i))continue;
                 var c=s.companies[i];float workTime=Mathf.Max(0,dt-c.lockdown);c.lockdown=Mathf.Max(0,c.lockdown-dt);
-                bool campaigning=c.workers.Exists(w=>(w.job>=0 && w.job<3) || (w.assignment>=0 && w.assignment<3));
+                bool campaigning=c.workers.Exists(w=>w.voucher!=null || (w.job>=0 && w.job<3) || (w.assignment>=0 && w.assignment<3));
                 if(!campaigning || workTime==0)c.suspicion=Mathf.Max(0,c.suspicion-dt*.6f);
                 float decorMorale=OfficeProgression.DecorMorale(c);
                 foreach(var w in c.workers)
                 {
+                    if(w.voucher!=null)
+                    {
+                        if(s.elapsed>=w.voucher.deadline || c.lockdown>0 || !OfficeProgression.HasLaptop(c,w))
+                            OfficeProgression.FinishVoucher(s,i,w,false,report);
+                        else continue;
+                    }
                     w.reaction=Mathf.Max(0,w.reaction-dt);
                     w.mood=Mathf.Min(100,w.mood+dt*(.03f*c.decorUpgrade+decorMorale));
                     float available=c.lockdown>0?0:workTime;

@@ -76,7 +76,7 @@ namespace ScammerTown
         void DrawWorkerBubble(RoomItem item,Vector2 p,float tile)
         {
             var w=Management.At(C,item);if(w==null)return;
-            string activity=C.lockdown>0?"Office paused":w.job>=0 && w.job!=3 && !item.placed?"Waiting for desk":OfficeProgression.CampaignActivity(w);
+            string activity=w.voucher!=null?"Voucher matching "+w.voucher.progress+"/4":C.lockdown>0?"Office paused":w.job>=0 && w.job!=3 && !item.placed?"Waiting for desk":OfficeProgression.CampaignActivity(w);
             string text=w.name+" · "+(w.reaction>0 ? w.status : activity);
             if(w.job>=0)text+="\n"+Management.Jobs[w.job].name+" · "+Mathf.CeilToInt(w.remaining)+"s";
             float labelY=p.y-tile*2.25f*WorkstationVisualScale;
