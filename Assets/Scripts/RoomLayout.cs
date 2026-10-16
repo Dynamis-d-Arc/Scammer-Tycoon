@@ -10,6 +10,7 @@ namespace ScammerTown
         public string id, kind;
         public int x, y, rotation;
         public bool placed;
+        public bool manuallyStored;
         public bool Station => kind == "desktop" || kind == "laptop";
         public bool GroundCover => kind == "rug";
         public string Name => FurnitureCatalog.Find(kind)!=null ? FurnitureCatalog.Find(kind).name : Station ? (kind == "desktop" ? "Desktop workstation" : "Laptop workstation") :
@@ -54,7 +55,7 @@ namespace ScammerTown
         public static bool Move(Company company, RoomItem item, int x, int y, int rotation)
         {
             if (!CanPlace(company, item, x, y, rotation)) return false;
-            item.x = x; item.y = y; item.rotation = rotation; item.placed = true;
+            item.x = x; item.y = y; item.rotation = rotation; item.placed = true; item.manuallyStored = false;
             return true;
         }
         public static bool HasStationSpace(Company company)
@@ -70,7 +71,7 @@ namespace ScammerTown
             if(company.level>=Rules.MaxOfficeLevel)return false;
             company.level++;
             Ensure(company);
-            foreach(var item in company.layout)if(!item.placed)AutoPlace(company,item);
+            foreach(var item in company.layout)if(!item.placed && !item.manuallyStored)AutoPlace(company,item);
             return true;
         }
         public static bool AutoPlace(Company company, RoomItem item)

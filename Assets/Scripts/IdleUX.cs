@@ -15,7 +15,7 @@ namespace ScammerTown
         string WorkerStatus(Worker w)
         {
             if(C.lockdown>0)return "Connection paused · "+Mathf.CeilToInt(C.lockdown)+"s";
-            if(w.job>=0 && w.job!=3 && w.station==null)return "Waiting for a placed desk";
+            if(w.job>=0 && w.job!=3 && !C.layout.Exists(it=>it.id==w.station && it.Station && it.placed))return "Waiting for a placed desk";
             if(w.job>=0)return Management.Jobs[w.job].name+" · "+Mathf.CeilToInt(w.remaining)+"s";
             return w.assignment>=0 ? "Assigned: "+Management.Jobs[w.assignment].name : "Choose an assignment";
         }

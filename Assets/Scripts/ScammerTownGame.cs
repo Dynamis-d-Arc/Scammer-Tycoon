@@ -14,6 +14,7 @@ namespace ScammerTown
         string tab = "Operations", selection = "Desktop", notice = "", saveStatus = "";
         float noticeUntil, saveClock, zoom = 1;
         Vector2 scroll;
+        Vector2 viewportScroll;
         bool confirmReset, help;
         GUIStyle title, heading, body, small, button, stat, card;
         readonly Color ink = new Color(.94f, .96f, 1f), muted = new Color(.58f, .69f, .8f), lime = new Color(.25f, .95f, .76f);
@@ -86,10 +87,7 @@ namespace ScammerTown
             Management.Ensure(state);state.Current.neonTheme=state.neon;
             try
             {
-                string temp = SavePath + ".tmp";
-                File.WriteAllText(temp, JsonUtility.ToJson(state, true));
-                if (File.Exists(SavePath)) File.Copy(SavePath, SavePath + ".bak", true);
-                File.Copy(temp, SavePath, true); File.Delete(temp);
+                AtomicSave.Write(SavePath, JsonUtility.ToJson(state, true));
                 saveStatus = "Saved " + DateTime.Now.ToString("HH:mm");
             }
             catch (Exception e) { saveStatus = "Save failed"; Debug.LogWarning(e.Message); }
@@ -168,8 +166,11 @@ namespace ScammerTown
                 else if(key==KeyCode.Alpha2){Navigate("Employees");Event.current.Use();}
                 else if(key==KeyCode.Alpha3){OpenShop(0);Event.current.Use();}
             }
-            float scale = Mathf.Min(Screen.width / 1440f, Screen.height / 900f);
-            GUI.matrix = Matrix4x4.TRS(new Vector3((Screen.width - 1440 * scale)/2, (Screen.height - 900 * scale)/2,0), Quaternion.identity, new Vector3(scale,scale,1));
+            // Keep text readable in small windows; scroll instead of shrinking indefinitely.
+            float scale = Mathf.Max(.85f, Mathf.Min(Screen.width / 1440f, Screen.height / 900f));
+            GUI.matrix = Matrix4x4.TRS(new Vector3(Mathf.Max(0,(Screen.width - 1440 * scale)/2), Mathf.Max(0,(Screen.height - 900 * scale)/2),0), Quaternion.identity, new Vector3(scale,scale,1));
+            bool smallViewport=Screen.width/scale<1440 || Screen.height/scale<900;
+            if(smallViewport)viewportScroll=GUI.BeginScrollView(new Rect(0,0,Screen.width/scale,Screen.height/scale),viewportScroll,new Rect(0,0,1440,900));
             Panel(new Rect(0,0,1440,900), new Color(.035f,.05f,.09f));
             bool enabled=GUI.enabled;
             GUI.enabled=!help && !confirmReset && !workerModal && !shopModal && !managementPanel && !furnitureStorageOpen;
@@ -183,6 +184,8 @@ namespace ScammerTown
             if (help) DrawHelp();
             if (confirmReset) DrawReset();
             if (Time.unscaledTime < noticeUntil) { Panel(new Rect(380,684,670,48),new Color(.24f,.15f,.075f)); Label(398,690,634,36,notice); }
+            if(smallViewport)GUI.EndScrollView();
+            GUI.matrix=Matrix4x4.identity;
         }
 
         void DrawInspector()

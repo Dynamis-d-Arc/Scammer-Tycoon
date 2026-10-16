@@ -57,7 +57,10 @@ Drag a desk or piece of equipment directly in the office and release on a clear 
 The suite covers recurring assignments, changing and stopping jobs, zero-cash starts, ignored legacy energy/heat, raid migration, save persistence, employee-profile selection, placement, property navigation, recovery, and economic progression. Legacy raid/energy tests were replaced with idle-game behavior checks.
 
 ### Office expansion and equipment previews
-Use **Expand floor** below the room or in Shop → Equipment. Floors grow in 5-tile steps from 5 × 5 to 100 × 100. The first expansion costs $1,500; later prices scale with floor level. Expansion preserves placed furniture and automatically places stored equipment. Shop cards preview the actual workstation artwork and require a clear 2 × 2 space before purchase. Scroll to zoom, drag empty floor to pan, and use **Fit office** to see the entire room.
+Use **Expand floor** below the room or in Shop → Equipment. Floors grow in 5-tile steps from 5 × 5 to 100 × 100. The first expansion costs $1,500; later prices scale with floor level. Expansion preserves placed furniture and automatically places overflow equipment, but items deliberately stored stay in storage. Older saves cannot distinguish deliberate storage from overflow until an item is stored again. Shop cards preview the actual workstation artwork and require a clear 2 × 2 space before purchase. Scroll to zoom, drag empty floor to pan, and use **Fit office** to see the entire room.
+
+### Reliability and small windows
+Stored desks retain their assigned employees and pause desk-dependent work until placed again. Job cycles preserve leftover simulation time. Layout repair runs during initialization and state changes instead of each room draw. Saves use a flushed staging file and atomic replacement with a backup; platforms without replacement support report a save failure rather than overwrite the live save unsafely. In smaller windows the interface keeps at least 85% scale and provides scrollbars to reach the full interface. `ProjectSetup.Verify` includes regression checks for these storage, timing, and save behaviors.
 
 This functionality is included in the current verification suite.
 

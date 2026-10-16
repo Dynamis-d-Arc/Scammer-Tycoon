@@ -9,7 +9,7 @@ namespace ScammerTown
         void StoreFurniture(RoomItem item)
         {
             if(item==null || !C.layout.Contains(item))return;
-            CancelPlacement();item.placed=false;selectedItemId=item.id;
+            CancelPlacement();item.placed=false;item.manuallyStored=true;selectedItemId=item.id;
             Management.Ensure(state);Save();Notify("Stored "+item.Name+". Find it in Storage when you want it back.");
         }
         void OpenFurnitureStorage()

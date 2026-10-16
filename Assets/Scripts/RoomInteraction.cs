@@ -45,7 +45,6 @@ namespace ScammerTown
             if(cancelForFocusLoss) { CancelPlacement(); cancelForFocusLoss=false; }
             SynchronizeRoom();
             if (!GUI.enabled) CancelPlacement();
-            Management.Ensure(state);
             PixelCamera();
             RoomItem selected = C.layout.Find(item => item.id == selectedItemId);
             Panel(new Rect(0,70,1440,758),new Color(.035f,.05f,.09f));

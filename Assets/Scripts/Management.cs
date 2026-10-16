@@ -57,7 +57,8 @@ namespace ScammerTown
                 var occupied=new HashSet<string>();
                 foreach(var w in c.workers)
                 {
-                    if(w.station!=null && (!c.layout.Exists(it=>it.id==w.station && it.Station && it.placed) || !occupied.Add(w.station))) w.station=null;
+                    // A stored desk still belongs to its worker; replacing it resumes the job.
+                    if(w.station!=null && (!c.layout.Exists(it=>it.id==w.station && it.Station) || !occupied.Add(w.station))) w.station=null;
                 }
                 foreach(var w in c.workers) if(w.station==null)
                 {
@@ -140,25 +141,25 @@ namespace ScammerTown
             for(int i=0;i<s.companies.Length;i++)
             {
                 if(!Owned(s,i))continue;
-                var c=s.companies[i];c.lockdown=Mathf.Max(0,c.lockdown-dt);
+                var c=s.companies[i];float workTime=Mathf.Max(0,dt-c.lockdown);c.lockdown=Mathf.Max(0,c.lockdown-dt);
                 foreach(var w in c.workers)
                 {
                     w.reaction=Mathf.Max(0,w.reaction-dt);
                     w.mood=Mathf.Min(100,w.mood+dt*.03f*c.decorUpgrade);
-                    if(w.job<0)
+                    float available=workTime;
+                    while(available>0)
                     {
-                        if(w.assignment>=0)Start(s,i,w,w.assignment);
-                        continue;
+                        if(w.job<0 && (w.assignment<0 || !Start(s,i,w,w.assignment)))break;
+                        if(w.job!=3 && !c.layout.Exists(it=>it.id==w.station && it.placed && it.Station)) break;
+                        float spent=Mathf.Min(available,w.remaining);
+                        w.remaining-=spent;available-=spent;if(w.remaining>0)break;
+                        int job=w.job;var j=Jobs[job];bool won=random()*100<Chance(c,w,job);
+                        int pay=won ? Mathf.RoundToInt(j.pay*(i==2 ? 1.15f : 1)) : Mathf.RoundToInt(j.pay*.15f);
+                        s.cash+=pay;c.earned+=pay;s.totalJobIncome+=pay;s.jobsCompleted++;w.completed++;s.attempts++;if(won)s.wins++;
+                        w.skill=Mathf.Max(w.skill,Mathf.Min(5,1+w.completed/5));w.mood=Mathf.Clamp(w.mood+(won ? 4 : -3),20,100);
+                        w.job=-1;w.remaining=0;w.status=won ? "Success! +$"+pay : "Partial result +$"+pay;w.reaction=4;
+                        report(Name(i)+": "+w.name+" · "+w.status,pay);
                     }
-                    if(c.lockdown>0 || (w.job!=3 && !c.layout.Exists(it=>it.id==w.station && it.placed && it.Station))) continue;
-                    w.remaining-=dt;if(w.remaining>0)continue;
-                    int job=w.job;var j=Jobs[job];bool won=random()*100<Chance(c,w,job);
-                    int pay=won ? Mathf.RoundToInt(j.pay*(i==2 ? 1.15f : 1)) : Mathf.RoundToInt(j.pay*.15f);
-                    s.cash+=pay;c.earned+=pay;s.totalJobIncome+=pay;s.jobsCompleted++;w.completed++;s.attempts++;if(won)s.wins++;
-                    w.skill=Mathf.Max(w.skill,Mathf.Min(5,1+w.completed/5));w.mood=Mathf.Clamp(w.mood+(won ? 4 : -3),20,100);
-                    w.job=-1;w.remaining=0;w.status=won ? "Success! +$"+pay : "Partial result +$"+pay;w.reaction=4;
-                    report(Name(i)+": "+w.name+" · "+w.status,pay);
-
                 }
             }
             if(s.day>s.lastBillDay)
