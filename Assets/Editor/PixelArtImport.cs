@@ -9,6 +9,7 @@ public class PixelArtImport : AssetPostprocessor
     {
         if(!assetPath.Contains("/PixelOffice/"))return;
         var t=(TextureImporter)assetImporter;
+        t.textureShape=TextureImporterShape.Texture2D;
         t.textureCompression=TextureImporterCompression.Uncompressed;
         t.mipmapEnabled=false;t.isReadable=true;t.alphaIsTransparency=true;
         t.filterMode=FilterMode.Point;t.maxTextureSize=2048;t.npotScale=TextureImporterNPOTScale.None;
@@ -16,10 +17,10 @@ public class PixelArtImport : AssetPostprocessor
     public static int Verify()
     {
         int count=0;
-        foreach(string name in new[]{"stations","typing","props","room_empty","furniture","city","floor"})
+        foreach(string name in new[]{"stations","typing","laptop_seated","props","room_empty","furniture","city","floor"})
         {
             var t=Resources.Load<Texture2D>("PixelOffice/"+name);
-            if(t==null || !t.isReadable || t.filterMode!=FilterMode.Point)throw new Exception("Pixel art missing/incorrect import: "+name);
+            if(t==null || !t.isReadable || t.filterMode!=FilterMode.Point)throw new Exception("Pixel art missing/incorrect import: "+name+" (texture="+(t==null?"missing":t.width+"x"+t.height+", readable="+t.isReadable+", filter="+t.filterMode)+")");
             var corners=new[]{t.GetPixel(0,0).a,t.GetPixel(t.width-1,0).a,t.GetPixel(0,t.height-1).a,t.GetPixel(t.width-1,t.height-1).a};
             foreach(float a in corners)if(a>.05f)throw new Exception("Pixel art background must be transparent: "+name);
             count++;
@@ -27,6 +28,17 @@ public class PixelArtImport : AssetPostprocessor
         var atex=Resources.Load<Texture2D>("PixelOffice/stations");var btex=Resources.Load<Texture2D>("PixelOffice/typing");
         if(atex.width!=btex.width || atex.height!=btex.height)throw new Exception("Animation atlas sizes differ");
         count++;
+        var seated=Resources.Load<Texture2D>("PixelOffice/laptop_seated");
+        if(seated.width!=seated.height)throw new Exception("Laptop atlas must be a square 4x4 sheet");
+        count++;
+        foreach(int row in new[]{0,2,3})for(int col=0;col<4;col++)
+        {
+            int opaque=0;
+            for(int y=2;y<28;y++)for(int x=2;x<28;x++)
+                if(seated.GetPixel((int)((col+x/30f)*seated.width/4),(int)((3-row+y/30f)*seated.height/4)).a>.5f)opaque++;
+            if(opaque<30)throw new Exception("Empty laptop seating cell: "+col+","+row);
+            count++;
+        }
         // Every workstation cell must contain a usable sprite.
         for(int row=0;row<4;row++)for(int col=0;col<4;col++)
         {

@@ -47,6 +47,8 @@ namespace ScammerTown
                 int row=(kind=="laptop"?2:0)+(frame>0?1:0);
                 float size=tile*2.45f*WorkstationVisualScale;
                 var rect=new Rect(anchor.x-size*.5f,anchor.y-size*.88f,size,size);
+                if(kind=="laptop")
+                    return AtlasSprite(SoftAsset("laptop_seated"),rotation,frame==0?0:frame==2?3:2,4,4,rect,alpha);
                 // The second sheet holds actual alternate hand/screen artwork.
                 return AtlasSprite(SoftAsset(frame==2?"typing":"stations"),rotation,row,4,4,rect,alpha);
             }
