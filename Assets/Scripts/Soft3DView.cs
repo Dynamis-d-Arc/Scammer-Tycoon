@@ -5,6 +5,8 @@ namespace ScammerTown
 {
     public partial class ScammerTownGame
     {
+        // Scale the complete desk/employee sprite together, keeping its floor anchor.
+        const float WorkstationVisualScale = .65f;
         readonly Dictionary<string,Texture2D> softAssets=new Dictionary<string,Texture2D>();
         int pixelCameraCompany=-1;
         Texture2D SoftAsset(string name)
@@ -43,7 +45,7 @@ namespace ScammerTown
             if(station)
             {
                 int row=(kind=="laptop"?2:0)+(frame>0?1:0);
-                float size=tile*2.45f;
+                float size=tile*2.45f*WorkstationVisualScale;
                 var rect=new Rect(anchor.x-size*.5f,anchor.y-size*.88f,size,size);
                 // The second sheet holds actual alternate hand/screen artwork.
                 return AtlasSprite(SoftAsset(frame==2?"typing":"stations"),rotation,row,4,4,rect,alpha);

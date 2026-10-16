@@ -77,7 +77,7 @@ namespace ScammerTown
         {
             var w=Management.At(C,item);if(w==null)return;
             string text=w.name+" · "+(w.reaction>0 ? w.status : w.job>=0 ? Mathf.CeilToInt(w.remaining)+"s" : "Ready");
-            float labelY=p.y-tile*2.25f;
+            float labelY=p.y-tile*2.25f*WorkstationVisualScale;
             Rect r=labelY<10 ? new Rect(p.x+tile*1.4f,10,140,33) : new Rect(p.x-70,labelY,140,33);
             Panel(r,w.reaction>0 ? new Color(.09f,.24f,.23f,.97f) : new Color(.065f,.095f,.16f,.97f));
             if(heldItem!=null) GUI.Label(r,text,small);
