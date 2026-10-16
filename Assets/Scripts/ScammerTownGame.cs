@@ -278,7 +278,7 @@ namespace ScammerTown
         void DrawHelp()
         {
             Modal("HOW TO PLAY");
-            Label(462,300,515,290,"1. Click an employee → Assignment → choose a job. It repeats automatically.\n\n2. Shop: buy workstations, hire employees, or improve your office.\n\n3. Expand floor: make room for more desks. Use Arrange furniture to move items; R rotates.\n\n4. City: buy and switch between apartments. Every owned office keeps working while the game runs.\n\nScroll to zoom. Drag empty floor to pan. Esc closes panels. No offline income.");
+            Label(462,300,515,290,"1. Press Start idle employees. Your team repeats work and earns cash automatically.\n\n2. Buy laptops and hire more employees to grow. New hires start working automatically.\n\n3. Spend earnings on skills, upgrades and a bigger office.\n\nThat is the main loop. Suspicion breaks resolve themselves. The laptop card game, contracts and decorating are optional extras.\n\nScroll to zoom; drag to move furniture. No income while the game is closed.");
             if(Button(462,620,516,"Back to town")) help=false;
         }
         void DrawReset()

@@ -66,10 +66,10 @@ public static class ProgressionChecks
         s.paused=false;Management.Tick(s,20,()=>0,(m,a)=>{});Management.Tick(s,1,()=>0,(m,a)=>{});
         check(w.job==0 && w.remaining>0,"campaign assignment resumes after lay low");
         s.Current.suspicion=99;s.cash=20000;
-        check(OfficeProgression.CampaignResult(s,0,2,true,(m,a)=>{}) && s.Current.lockdown==30 && s.Current.suspicion==45 && s.cash==19500,"investigation applies capped penalty and timed freeze");
+        check(OfficeProgression.CampaignResult(s,0,2,true,(m,a)=>{}) && s.Current.lockdown==30 && s.Current.suspicion==45 && s.cash==20000,"full suspicion triggers automatic break without losing money");
         s=new TycoonState();Management.Ensure(s);s.Current.suspicion=99;s.cash=100;
         OfficeProgression.CampaignResult(s,0,0,true,(m,a)=>{});
-        check(s.cash==95,"investigation charges five percent below cap");
+        check(s.cash==100,"automatic break preserves low cash balances");
         s=new TycoonState{branchOwned=true};Management.Ensure(s);s.companies[1].suspicion=80;
         OfficeProgression.CampaignResult(s,0,0,true,(m,a)=>{});
         check(s.companies[1].suspicion==80,"office suspicion is independent");
@@ -107,7 +107,10 @@ public static class ProgressionChecks
         check(!OfficeProgression.BeginVoucher(s,w,1),"voucher game requires laptop");
         var laptop=s.Current.layout.Find(it=>it.id==w.station);laptop.kind="laptop";s.Current.desktops=0;s.Current.laptops=1;laptop.id="laptop_0";w.station=laptop.id;
         check(OfficeProgression.BeginVoucher(s,w,1),"placed laptop starts voucher game");
-        check(!OfficeProgression.BeginVoucher(s,w,2) && !Management.Start(s,0,w,0),"voucher session prevents duplicate and simultaneous work");
+        check(!OfficeProgression.BeginVoucher(s,w,2) && Management.Start(s,0,w,0),"voucher session prevents duplicates but allows idle work");
+        float workingRemaining=w.remaining;Management.Tick(s,1,()=>0,(m,a)=>{});
+        check(w.voucher!=null && w.remaining<workingRemaining,"idle work progresses during optional minigame");
+        w.job=-1;w.remaining=0;s.elapsed=0;
         check(!Management.Assign(s.Current,w,laptop.id) && !OfficeProgression.Train(s,w,1),"desk swaps and retraining blocked during attempt");
         saved=JsonUtility.FromJson<TycoonState>(JsonUtility.ToJson(s));check(Rules.Valid(saved) && saved.Current.workers[0].voucher.symbols.Length==4,"active voucher saves and restores");
         cash=s.cash;int reward=w.voucher.reward;
@@ -123,15 +126,25 @@ public static class ProgressionChecks
         OfficeProgression.ChooseVoucher(s,w,wrong,(m,a)=>{});OfficeProgression.ChooseVoucher(s,w,wrong,(m,a)=>{});
         check(w.voucher!=null && w.voucher.mistakes==2,"skilled employee tolerates two mistakes");
         OfficeProgression.ChooseVoucher(s,w,wrong,(m,a)=>{});
-        check(w.voucher==null && s.cash==cash && s.Current.suspicion==11,"third mistake fails with suspicion and no payout");
+        check(w.voucher==null && s.cash==cash && s.Current.suspicion==4,"failed bonus has no cash or suspicion penalty");
         s.elapsed=w.voucherReadyAt;OfficeProgression.BeginVoucher(s,w,3);w.voucher.deadline=s.elapsed+.5f;
-        Management.Tick(s,1,()=>0,(m,a)=>{});check(w.voucher==null && s.Current.suspicion==18,"timeout settles without panel being open");
+        Management.Tick(s,1,()=>0,(m,a)=>{});check(w.voucher!=null && s.Current.suspicion==4,"bonus game has no timeout even for an old saved deadline");
+        OfficeProgression.FinishVoucher(s,0,w,false,(m,a)=>{});
         s.elapsed=w.voucherReadyAt;OfficeProgression.BeginVoucher(s,w,4);laptop.placed=false;
         Management.Tick(s,.1f,()=>0,(m,a)=>{});check(w.voucher==null,"storing laptop interrupts minigame");
         laptop.placed=true;s.elapsed=w.voucherReadyAt;OfficeProgression.BeginVoucher(s,w,5);s.Current.suspicion=99;
         OfficeProgression.FinishVoucher(s,0,w,false,(m,a)=>{});
-        check(s.Current.lockdown==30 && s.Current.suspicion==45,"failed voucher can trigger investigation");
+        check(s.Current.lockdown==0 && s.Current.suspicion==99,"skipping optional game cannot trigger a break");
         saved.Current.workers[0].voucher.symbols[0]=9;check(!Rules.Valid(saved),"invalid voucher symbols rejected");
+        s=new TycoonState();Management.Ensure(s);w=s.Current.workers[0];
+        check(Management.StartIdleTeam(s)==1 && w.assignment==0 && w.job==0,"one click starts idle employees");
+        check(Management.StartIdleTeam(s)==0,"start team preserves existing assignments");
+        s.cash=10000;check(Management.Hire(s,0) && s.Current.workers[1].assignment==3,"new hire earns with repairs when no desk is free");
+        s.Current.suspicion=99;OfficeProgression.CampaignResult(s,0,0,true,(m,a)=>{});
+        Management.Tick(s,31,()=>0,(m,a)=>{});
+        check(s.Current.lockdown==0 && w.job==0 && w.remaining<w.duration,"team automatically resumes after suspicion break");
+        s.Current.suspicion=0;s.Current.securityTier=5;OfficeProgression.CampaignResult(s,0,0,true,(m,a)=>{});
+        check(Mathf.Abs(s.Current.suspicion-2.4f)<.001f,"security slows suspicion by forty percent at maximum tier");
         for(int i=0;i<5;i++)
         {
             Rect card=ScammerTownGame.VoucherCardRect(i);

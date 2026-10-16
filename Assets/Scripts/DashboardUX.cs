@@ -87,7 +87,7 @@ namespace ScammerTown
             else if(unassigned>=0)
             {
                 Text(C.workers[unassigned].name+" is ready for work.",true);
-                PrimaryAction("Choose an assignment",()=>{OpenWorkerProfile(unassigned);workerPage=1;});
+                PrimaryAction("Start earning automatically",()=>{Management.StartIdleTeam(state);Save();});
             }
             else if(noDesk>=0)
             {

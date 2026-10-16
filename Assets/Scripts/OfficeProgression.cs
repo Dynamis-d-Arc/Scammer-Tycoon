@@ -20,7 +20,7 @@ namespace ScammerTown
         public static bool HasLaptop(Company c,Worker w) => c.layout!=null && c.layout.Exists(it=>it.id==w.station && it.kind=="laptop" && it.placed);
         public static bool BeginVoucher(TycoonState s,Worker w,int seed)
         {
-            if(s.paused || !s.Current.workers.Contains(w) || w.job>=0 || w.voucher!=null || s.Current.lockdown>0 || s.elapsed<w.voucherReadyAt || !HasLaptop(s.Current,w))return false;
+            if(s.paused || !s.Current.workers.Contains(w) || w.voucher!=null || s.elapsed<w.voucherReadyAt || !HasLaptop(s.Current,w))return false;
             var random=new System.Random(seed);var symbols=new int[4];for(int i=0;i<4;i++)symbols[i]=random.Next(5);
             w.voucher=new VoucherRound{symbols=symbols,allowance=(w.skill-1)/2,reward=180+w.skill*25+(int)SkillBonus(s.Current,0)*5,deadline=s.elapsed+25+w.skill*3+SkillBonus(s.Current,0)};
             return true;
@@ -29,7 +29,7 @@ namespace ScammerTown
         {
             if(s.paused || !s.Current.workers.Contains(w) || w.voucher==null || symbol<0 || symbol>=5)return false;
             var r=w.voucher;
-            if(s.elapsed>=r.deadline || s.Current.lockdown>0 || !HasLaptop(s.Current,w)){FinishVoucher(s,s.active,w,false,report);return false;}
+            if(!HasLaptop(s.Current,w)){FinishVoucher(s,s.active,w,false,report);return false;}
             if(r.symbols[r.progress]==symbol)r.progress++;else r.mistakes++;
             if(r.progress==4 || r.mistakes>r.allowance)FinishVoucher(s,s.active,w,r.progress==4,report);
             return true;
@@ -45,13 +45,13 @@ namespace ScammerTown
             }
             w.status=won?"Voucher cleared +$"+reward:"Voucher rejected";w.reaction=4;
             report(w.status+(won?"":" · no payout"),won?reward:0);
-            CampaignResult(s,office,0,won,report);
+            if(won)CampaignResult(s,office,0,true,report);
         }
         public static bool ValidVoucher(Worker w)
         {
             if(float.IsNaN(w.voucherReadyAt) || float.IsInfinity(w.voucherReadyAt) || w.voucherReadyAt<0)return false;
             var r=w.voucher;if(r==null)return !w.voucherActive;
-            if(w.job>=0 || r.symbols==null || r.symbols.Length!=4 || r.progress<0 || r.progress>=4 || r.allowance<0 || r.allowance>2 || r.mistakes<0 || r.mistakes>r.allowance || r.reward<205 || r.reward>380 || float.IsNaN(r.deadline) || float.IsInfinity(r.deadline) || r.deadline<0)return false;
+            if(r.symbols==null || r.symbols.Length!=4 || r.progress<0 || r.progress>=4 || r.allowance<0 || r.allowance>2 || r.mistakes<0 || r.mistakes>r.allowance || r.reward<205 || r.reward>380 || float.IsNaN(r.deadline) || float.IsInfinity(r.deadline) || r.deadline<0)return false;
             foreach(int symbol in r.symbols)if(symbol<0 || symbol>=5)return false;
             return true;
         }
@@ -75,7 +75,7 @@ namespace ScammerTown
             s.Current.campaignSkills|=1<<node;return true;
         }
         public static int SuspicionGain(int job) => job==0?4:job==1?7:job==2?12:0;
-        public static string SuspicionLevel(Company c) => c.suspicion>=75?"Investigated":c.suspicion>=40?"Watched":"Quiet";
+        public static string SuspicionLevel(Company c) => c.suspicion>=75?"Auto break soon":c.suspicion>=40?"Building":"Low";
         public static bool LayLow(TycoonState s)
         {
             if(s.paused || s.Current.lockdown>0)return false;
@@ -84,16 +84,14 @@ namespace ScammerTown
         public static bool CampaignResult(TycoonState s,int office,int job,bool won,Action<string,float> report)
         {
             if(job==3)return false;
-            var c=s.companies[office];float before=c.suspicion;
-            c.suspicion=Mathf.Min(100,c.suspicion+SuspicionGain(job)+(won?0:3));
+            var c=s.companies[office];
+            c.suspicion=Mathf.Min(100,c.suspicion+(SuspicionGain(job)+(won?0:3))*(1-.08f*c.securityTier));
             if(c.suspicion<100)
             {
-                if(before<75 && c.suspicion>=75)report(Management.Name(office)+": investigation warning! Lay low before suspicion reaches 100.",0);
                 return false;
             }
-            float fine=Mathf.Min(500,s.cash*.05f);s.cash-=fine;
             c.suspicion=45;c.lockdown=Mathf.Max(c.lockdown,30);
-            report(Management.Name(office)+": campaign accounts frozen for 30s; $"+Mathf.FloorToInt(fine)+" penalty. Suspicion reset to 45.",0);
+            report(Management.Name(office)+": team taking a 30s cooldown. Work resumes automatically; no money lost.",0);
             return true;
         }
         public static string CampaignActivity(Worker w)

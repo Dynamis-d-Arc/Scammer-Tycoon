@@ -24,9 +24,8 @@ namespace ScammerTown
         {
             DrawNextStep();
             Space();Text("THIS OFFICE");
-            Text("Suspicion: "+Mathf.CeilToInt(C.suspicion)+"/100 · "+OfficeProgression.SuspicionLevel(C));
-            Text("Campaigns attract complaints. At 100, accounts freeze for 30s and you lose 5% of cash (max $500). Suspicion falls 0.6/sec while the office is paused or has no campaign assignments. Legitimate repair shifts add none.",true);
-            Action("Lay low · pause this office for 30s",()=>{if(OfficeProgression.LayLow(state))Save();},CanAct && C.lockdown<=0);
+            Text("Your team earns automatically. Upgrade when you want to grow.",true);
+            Text("At full suspicion, the team takes a short automatic break, then resumes. No fine and no action needed.",true);
             Text(Management.Benefit(state.active),true);
             int wages=0;foreach(var worker in C.workers)wages+=worker.salary;
             Text(Money(C.earned)+" earned in total\n"+Money(wages+Management.Rent(state.active))+" daily rent + wages",true);
@@ -42,6 +41,7 @@ namespace ScammerTown
         void DrawTeamList()
         {
             Text(C.employeeCount+" employees · "+C.workers.FindAll(w=>w.assignment<0).Count+" unassigned");
+            PrimaryAction("Start idle employees",()=>{Management.StartIdleTeam(state);Save();},CanAct && C.workers.Exists(w=>w.assignment<0 && w.job<0));
             PrimaryAction("Hire an employee",()=>OpenShop(3));
             Text("Search by name",true);teamSearch=GUILayout.TextField(teamSearch,40,GUILayout.Height(32));
             needsAssignmentOnly=GUILayout.Toggle(needsAssignmentOnly," Only unassigned employees");Space();
@@ -105,11 +105,11 @@ namespace ScammerTown
                     Action("Train crew · "+Money(Rules.TierCost(C.employeeTier+1)),()=>Tier("crew",C.employeeTier,()=>C.employeeTier++),CanAct && C.employeeTier<5 && state.cash>=Rules.TierCost(C.employeeTier+1));
                     Text("Campaign training · Tier "+C.productTier);Text("+3 percentage points per tier for Mirage Storefront.",true);
                     Action("Train products · "+Money(Rules.TierCost(C.productTier+1)),()=>Tier("products",C.productTier,()=>C.productTier++),CanAct && C.productTier<5 && state.cash>=Rules.TierCost(C.productTier+1));
-                    Space();Text("Security · Tier "+C.securityTier);Text("Protection against connection incidents: "+Rules.Chance(C.securityTier)+"%.",true);
+                    Space();Text("Security · Tier "+C.securityTier);Text("Suspicion builds "+(C.securityTier*8)+"% slower. Connection checks are automatic.",true);
                     Action("Improve security · "+Money(Rules.TierCost(C.securityTier+1)),()=>Tier("security",C.securityTier,()=>C.securityTier++),CanAct && C.securityTier<5 && state.cash>=Rules.TierCost(C.securityTier+1));break;
                 case 3:
                     Text("HIRE AN EMPLOYEE");
-                    Text("New employees need a placed workstation and an assignment. Salaries are paid each game day.",true);
+                    Text("New hires start earning automatically. They use an available desk, or do repair shifts until you give them a campaign. Salaries are automatic.",true);
                     if(C.employeeCount>=C.Capacity)Action("Office full · expand floor",()=>{shopModal=false;Navigate("Properties");});
                     Text("Standard employee");Text("Skill 1 · $35/day salary",true);
                     Action("Recruit · $750",()=>Recruit(0),CanAct && C.employeeCount<C.Capacity && state.cash>=750);
@@ -234,27 +234,21 @@ namespace ScammerTown
             int target=r==null?0:r.symbols[r.progress];
             DrawGiftCard(new Rect(28,78,176,112),target,false);
             Label(28,56,190,22,r==null?"PREVIEW CARD":"MATCH THIS CARD",small);
-            Label(222,62,480,27,r==null?"Your fictional gift-card wallet":r.progress+" / 4 redeemed   ·   "+Mathf.CeilToInt(Mathf.Max(0,r.deadline-state.elapsed))+"s left",heading);
-            Label(222,95,480,44,r==null?"Match the target symbol with a card below. Skill gives extra time and mistake tolerance.":"Mistakes "+r.mistakes+" / "+r.allowance+"   ·   Reward "+Money(r.reward)+"\nSelect the matching card in the redemption tray.",body);
+            Label(222,62,480,27,r==null?"Optional bonus · no timer":r.progress+" / 4 redeemed   ·   Take your time",heading);
+            Label(222,95,480,44,r==null?"Match four cards for extra cash. Your employee keeps earning in the background.":"Mistakes "+r.mistakes+" / "+r.allowance+"   ·   Reward "+Money(r.reward)+"\nSelect the matching card in the redemption tray.",body);
             if(r==null)
             {
-                string status="Skill "+w.skill+" · "+((w.skill-1)/2)+" mistakes allowed · "+(25+w.skill*3+OfficeProgression.SkillBonus(C,0))+"s · "+Money(180+w.skill*25+OfficeProgression.SkillBonus(C,0)*5);
+                string status="Skill "+w.skill+" · "+((w.skill-1)/2)+" mistakes allowed · Bonus "+Money(180+w.skill*25+OfficeProgression.SkillBonus(C,0)*5);
                 if(!OfficeProgression.HasLaptop(C,w))status="Assign a placed laptop in the Desk tab first.";
-                else if(C.lockdown>0)status="Office paused · "+Mathf.CeilToInt(C.lockdown)+"s remaining";
-                else if(w.job>=0)status="Finish the current campaign before starting.";
                 else if(state.elapsed<w.voucherReadyAt)status="Wallet cooling down · "+Mathf.CeilToInt(w.voucherReadyAt-state.elapsed)+"s";
                 Label(222,139,480,26,status,small);
-                if(w.job>=0 && w.assignment>=0)
-                {
-                    if(Button(222,168,338,"Stop repeating after current campaign",CanAct,32)){w.assignment=-1;Save();}
-                }
-                else if(Button(222,168,338,"Open redemption session",CanAct && C.lockdown<=0 && w.job<0 && OfficeProgression.HasLaptop(C,w) && state.elapsed>=w.voucherReadyAt,32,true))
+                if(Button(222,168,338,"Play for bonus cash",CanAct && OfficeProgression.HasLaptop(C,w) && state.elapsed>=w.voucherReadyAt,32,true))
                 {if(OfficeProgression.BeginVoucher(state,w,UnityEngine.Random.Range(0,int.MaxValue)))Save();}
             }
             else
             {
                 Bar(222,148,480,r.progress*25,accent);
-                if(Button(222,168,338,"Abandon · no payout / +7 suspicion",CanAct,32))
+                if(Button(222,168,338,"Skip bonus · no penalty",CanAct,32))
                 {OfficeProgression.FinishVoucher(state,state.active,w,false,(m,a)=>{Log(m);Notify(m);});Save();}
             }
             if(state.paused && Button(574,168,128,"Resume",true,32))state.paused=false;
@@ -262,7 +256,7 @@ namespace ScammerTown
             for(int i=0;i<5;i++)
                 if(DrawGiftCard(VoucherCardRect(i),i,w.voucher!=null && CanAct))
                 {OfficeProgression.ChooseVoucher(state,w,i,(m,a)=>{Log(m);Notify(m);if(a>0)RewardFeedback(a);});Save();}
-            Label(28,344,680,22,"Success +4 suspicion · Failure +7 · 60s cooldown · Timer runs while this panel is closed",small);
+            Label(28,344,680,22,"Optional extra cash · No failure penalty · 60s between attempts · Idle work continues",small);
             // Laptop deck: inset keys, a trackpad and a centered hinge.
             Panel(new Rect(0,376,736,48),new Color(.22f,.27f,.34f));
             Panel(new Rect(310,374,116,4),new Color(.045f,.06f,.09f));

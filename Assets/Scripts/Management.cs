@@ -87,7 +87,7 @@ namespace ScammerTown
         {
             if(job<0 || job>=Jobs.Length || !Owned(s,companyIndex) || s.paused) return false;
             var c=s.companies[companyIndex];var j=Jobs[job];
-            if(!c.workers.Contains(w) || w.job>=0 || w.voucher!=null || c.lockdown>0 || (job==2 && s.jobsCompleted<5)) return false;
+            if(!c.workers.Contains(w) || w.job>=0 || c.lockdown>0 || (job==2 && s.jobsCompleted<5)) return false;
             if(job!=3 && !c.layout.Exists(it=>it.id==w.station && it.placed && it.Station)) return false;
             w.job=job;w.duration=Duration(c,w,companyIndex,job);w.remaining=w.duration;w.status=j.name;
             return true;
@@ -101,6 +101,14 @@ namespace ScammerTown
             if(worker.job<0)Start(s,index,worker,job);
             return true;
         }
+        public static int StartIdleTeam(TycoonState s)
+        {
+            if(s.paused)return 0;
+            int started=0;
+            foreach(var worker in s.Current.workers)
+                if(worker.assignment<0 && worker.job<0 && SetAssignment(s,s.active,worker,worker.station==null?3:0))started++;
+            return started;
+        }
         public static bool Hire(TycoonState s,int i,int specialist=0)
         {
             if(specialist<0 || specialist>4)return false;
@@ -108,6 +116,7 @@ namespace ScammerTown
             if(!Owned(s,i) || s.paused || c.employeeCount>=c.Capacity || !Rules.Pay(s,cost))return false;
             c.employeeCount++;Ensure(s);var w=c.workers[c.workers.Count-1];
             if(specialist>0){w.skill=3;w.salary=60;w.name="Robin "+c.employeeCount;w.specialty=specialist;}
+            SetAssignment(s,i,w,w.station==null?3:0);
             return true;
         }
         public static bool BuyHarbor(TycoonState s)
@@ -156,9 +165,8 @@ namespace ScammerTown
                 {
                     if(w.voucher!=null)
                     {
-                        if(s.elapsed>=w.voucher.deadline || c.lockdown>0 || !OfficeProgression.HasLaptop(c,w))
+                        if(!OfficeProgression.HasLaptop(c,w))
                             OfficeProgression.FinishVoucher(s,i,w,false,report);
-                        else continue;
                     }
                     w.reaction=Mathf.Max(0,w.reaction-dt);
                     w.mood=Mathf.Min(100,w.mood+dt*(.03f*c.decorUpgrade+decorMorale));
@@ -190,18 +198,13 @@ namespace ScammerTown
             }
             if(s.elapsed>=s.nextIncident && s.incidentCompany<0)
             {
-                s.incidentCompany=s.active;s.incidentCountdown=20;s.nextIncident=s.elapsed+180;
-                report(Name(s.active)+": suspicious traffic detected. 20 seconds to secure or isolate the connection.",0);
+                s.nextIncident=s.elapsed+180;
+                report("Connection check handled automatically. Your team keeps working.",0);
             }
             if(s.incidentCompany>=0)
             {
-                s.incidentCountdown-=dt;
-                if(s.incidentCountdown<=0)
-                {
-                    var c=s.companies[s.incidentCompany];bool blocked=c.lockdown>0 || random()*100<Rules.Chance(c.securityTier);
-                    float lost=blocked ? 0 : Mathf.Min(200,s.cash*.1f);s.cash-=lost;
-                    report(blocked ? "Security blocked the incident." : "Unresolved incident: lost $"+Mathf.FloorToInt(lost)+" (10% of cash, capped at $200).",0);s.incidentCompany=-1;
-                }
+                s.incidentCompany=-1;s.incidentCountdown=0;
+                report("Previous connection alert cleared automatically.",0);
             }
         }
     }

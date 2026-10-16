@@ -33,6 +33,8 @@ public static class ManagementChecks
         check(Management.Hire(state,0) && c.workers.Count==2,"hiring creates persistent employee");
         check(Management.ClaimGoal(state),"second employee goal");
         var other=c.workers[1];string desk=other.station;
+        check(other.assignment==0 && other.job==0,"new employee starts earning at an available desk");
+        other.assignment=-1;Management.Tick(state,other.remaining,()=>0,report);
         check(Management.Assign(c,alex,desk) && other.station!=alex.station,"desk reassignment swaps without duplicate occupancy");
         Management.Start(state,0,alex,0);check(!Management.Assign(c,other,alex.station),"busy workers cannot be displaced");
         var roundtrip=JsonUtility.FromJson<TycoonState>(JsonUtility.ToJson(state));
@@ -55,7 +57,7 @@ public static class ManagementChecks
         var bill=fresh();bill.cash=1;Management.Tick(bill,121,()=>0,report);
         check(bill.cash==0 && bill.Current.workers[0].mood>=30,"unpaid rent cannot create debt or deadlock");
         var threat=fresh();threat.nextIncident=0;Management.Tick(threat,1,()=>.99f,report);
-        check(threat.incidentCompany==0 && threat.cash==4820,"incident warns before taking cash");
+        check(threat.incidentCompany==-1 && threat.cash==4820,"connection checks resolve automatically without taking cash");
         threat.Current.lockdown=25;Management.Tick(threat,20,()=>.99f,report);
         check(threat.incidentCompany==-1 && threat.cash==4820,"free isolation blocks threat");
         state=fresh();state.branchOwned=true;state.cash=8000;state.jobsCompleted=10;
