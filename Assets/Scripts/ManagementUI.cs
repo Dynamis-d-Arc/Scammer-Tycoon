@@ -76,13 +76,21 @@ namespace ScammerTown
         void DrawWorkerBubble(RoomItem item,Vector2 p,float tile)
         {
             var w=Management.At(C,item);if(w==null)return;
-            string text=w.name+" · "+(w.reaction>0 ? w.status : w.job>=0 ? Mathf.CeilToInt(w.remaining)+"s" : "Ready");
+            string activity=C.lockdown>0?"Office paused":w.job>=0 && w.job!=3 && !item.placed?"Waiting for desk":OfficeProgression.CampaignActivity(w);
+            string text=w.name+" · "+(w.reaction>0 ? w.status : activity);
+            if(w.job>=0)text+="\n"+Management.Jobs[w.job].name+" · "+Mathf.CeilToInt(w.remaining)+"s";
             float labelY=p.y-tile*2.25f*WorkstationVisualScale;
-            Rect r=labelY<10 ? new Rect(p.x+tile*1.4f,10,140,33) : new Rect(p.x-70,labelY,140,33);
+            Rect r=new Rect(Mathf.Clamp(p.x-110,24,1196),Mathf.Max(145,labelY-20),220,w.job>=0?52:30);
             Panel(r,w.reaction>0 ? new Color(.09f,.24f,.23f,.97f) : new Color(.065f,.095f,.16f,.97f));
             if(heldItem!=null) GUI.Label(r,text,small);
             else if(GUI.Button(r,text,small))OpenWorkerProfile(C.workers.IndexOf(w));
-            if(w.job>=0)Bar(r.x,r.y+34,r.width,(1-w.remaining/w.duration)*100,lime);
+            if(w.job>=0)
+            {
+                Bar(r.x,r.yMax+2,r.width,(1-w.remaining/w.duration)*100,C.lockdown>0?muted:lime);
+                // An animated activity light supplements the workstation typing frames.
+                Color lamp=C.lockdown>0?muted:Color.Lerp(lime,Color.white,(Mathf.Sin(animationTime*5)+1)*.3f);
+                Panel(new Rect(r.xMax-7,r.y+3,4,4),lamp);
+            }
         }
     }
 }

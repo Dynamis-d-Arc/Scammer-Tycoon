@@ -21,9 +21,9 @@ namespace ScammerTown
     public static class Management
     {
         public static readonly JobCard[] Jobs={
-            new JobCard("Inbox shuffle","A low-risk fictional puzzle shift.",220,12,80),
-            new JobCard("Parcel puzzle","Bigger rewards per completed job. Product training helps.",600,24,60),
-            new JobCard("Neon pitch","A high-stakes fictional contract. Unlock with 5 jobs.",1250,40,45),
+            new JobCard("Phantom Giveaway","Fictional fake-prize campaign. Low reward and suspicion.",220,12,80),
+            new JobCard("Mirage Storefront","Fictional bogus-shop campaign. Higher reward and complaints.",600,24,60),
+            new JobCard("Moonshot Club","Fictional investment-hype campaign. High reward and suspicion.",1250,40,45),
             new JobCard("Community repairs","Guaranteed payout, even without a desk.",120,10,100)
         };
         public static string Name(int i) => i==0 ? "Basement Apartment" : i==1 ? "Neon Apartments" : "Harbor Loft";
@@ -145,12 +145,14 @@ namespace ScammerTown
             {
                 if(!Owned(s,i))continue;
                 var c=s.companies[i];float workTime=Mathf.Max(0,dt-c.lockdown);c.lockdown=Mathf.Max(0,c.lockdown-dt);
+                bool campaigning=c.workers.Exists(w=>(w.job>=0 && w.job<3) || (w.assignment>=0 && w.assignment<3));
+                if(!campaigning || workTime==0)c.suspicion=Mathf.Max(0,c.suspicion-dt*.6f);
                 float decorMorale=OfficeProgression.DecorMorale(c);
                 foreach(var w in c.workers)
                 {
                     w.reaction=Mathf.Max(0,w.reaction-dt);
                     w.mood=Mathf.Min(100,w.mood+dt*(.03f*c.decorUpgrade+decorMorale));
-                    float available=workTime;
+                    float available=c.lockdown>0?0:workTime;
                     while(available>0)
                     {
                         if(w.job<0 && (w.assignment<0 || !Start(s,i,w,w.assignment)))break;
@@ -164,6 +166,7 @@ namespace ScammerTown
                         w.job=-1;w.remaining=0;w.status=won ? "Success! +$"+pay : "Partial result +$"+pay;w.reaction=4;
                         report(Name(i)+": "+w.name+" · "+w.status,pay);
                         OfficeProgression.CompleteJob(s,i,job,s.elapsed-available,report);
+                        if(OfficeProgression.CampaignResult(s,i,job,won,report))break;
                     }
                 }
             }

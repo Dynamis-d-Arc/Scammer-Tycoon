@@ -5,7 +5,8 @@ namespace ScammerTown
     {
         void DrawContracts()
         {
-            Text("SHORT CONTRACTS");
+            Text("CAMPAIGN CONTRACTS");
+            Text("Campaign results also raise office suspicion. A freeze does not stop the contract clock. All campaigns are fictional.",true);
             Text("Complete jobs in the accepting office within 120 seconds. Partial results count. Normal job earnings continue. One contract at a time; no entry fee or failure penalty. Timer pauses with the game.",true);
             var c=state.contract;
             if(state.contractActive && c!=null)

@@ -10,6 +10,35 @@ namespace ScammerTown
     }
     public static class OfficeProgression
     {
+        public static int SuspicionGain(int job) => job==0?4:job==1?7:job==2?12:0;
+        public static string SuspicionLevel(Company c) => c.suspicion>=75?"Investigated":c.suspicion>=40?"Watched":"Quiet";
+        public static bool LayLow(TycoonState s)
+        {
+            if(s.paused || s.Current.lockdown>0)return false;
+            s.Current.lockdown=30;return true;
+        }
+        public static bool CampaignResult(TycoonState s,int office,int job,bool won,Action<string,float> report)
+        {
+            if(job==3)return false;
+            var c=s.companies[office];float before=c.suspicion;
+            c.suspicion=Mathf.Min(100,c.suspicion+SuspicionGain(job)+(won?0:3));
+            if(c.suspicion<100)
+            {
+                if(before<75 && c.suspicion>=75)report(Management.Name(office)+": investigation warning! Lay low before suspicion reaches 100.",0);
+                return false;
+            }
+            float fine=Mathf.Min(500,s.cash*.05f);s.cash-=fine;
+            c.suspicion=45;c.lockdown=Mathf.Max(c.lockdown,30);
+            report(Management.Name(office)+": campaign accounts frozen for 30s; $"+Mathf.FloorToInt(fine)+" penalty. Suspicion reset to 45.",0);
+            return true;
+        }
+        public static string CampaignActivity(Worker w)
+        {
+            if(w.job<0)return "Awaiting campaign";
+            if(w.job==3)return "Repair shift";
+            float progress=1-w.remaining/Mathf.Max(.01f,w.duration);
+            return progress<.33f?"Campaign live":progress<.67f?"Fictional chats active":"Awaiting result";
+        }
         public static string Specialty(int value) => value==0 ? "Generalist" : Management.Jobs[value-1].name+" specialist";
         public static bool Matches(Worker w,int job) => w.specialty==job+1;
         public static float DecorSpeed(Company c)

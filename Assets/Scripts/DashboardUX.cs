@@ -42,6 +42,9 @@ namespace ScammerTown
             if(Button(1184,23,100,state.paused ? "Resume" : "Pause",allowed,40))state.paused=!state.paused;
             if(Button(1296,23,100,"Menu",allowed,40))Navigate("Settings");
             Label(86,46,420,20,"SCAMMER TOWN / "+(cityView?"CITY":"OFFICE"),small);
+            Color risk=C.suspicion>=75?new Color(1,.42f,.35f):C.suspicion>=40?new Color(1,.76f,.38f):accent;
+            Label(490,22,180,24,"Suspicion "+Mathf.CeilToInt(C.suspicion)+" / 100",small);
+            Bar(490,51,170,C.suspicion,risk);
         }
         void DrawBottomDock()
         {

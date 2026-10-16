@@ -14,7 +14,7 @@ namespace ScammerTown
         }
         string WorkerStatus(Worker w)
         {
-            if(C.lockdown>0)return "Connection paused · "+Mathf.CeilToInt(C.lockdown)+"s";
+            if(C.lockdown>0)return "Office paused · "+Mathf.CeilToInt(C.lockdown)+"s";
             if(w.job>=0 && w.job!=3 && !C.layout.Exists(it=>it.id==w.station && it.Station && it.placed))return "Waiting for a placed desk";
             if(w.job>=0)return Management.Jobs[w.job].name+" · "+Mathf.CeilToInt(w.remaining)+"s";
             return w.assignment>=0 ? "Assigned: "+Management.Jobs[w.assignment].name : "Choose an assignment";
@@ -23,6 +23,9 @@ namespace ScammerTown
         {
             DrawNextStep();
             Space();Text("THIS OFFICE");
+            Text("Suspicion: "+Mathf.CeilToInt(C.suspicion)+"/100 · "+OfficeProgression.SuspicionLevel(C));
+            Text("Campaigns attract complaints. At 100, accounts freeze for 30s and you lose 5% of cash (max $500). Suspicion falls 0.6/sec while the office is paused or has no campaign assignments. Legitimate repair shifts add none.",true);
+            Action("Lay low · pause this office for 30s",()=>{if(OfficeProgression.LayLow(state))Save();},CanAct && C.lockdown<=0);
             Text(Management.Benefit(state.active),true);
             int wages=0;foreach(var worker in C.workers)wages+=worker.salary;
             Text(Money(C.earned)+" earned in total\n"+Money(wages+Management.Rent(state.active))+" daily rent + wages",true);
@@ -95,9 +98,9 @@ namespace ScammerTown
                     Space();Text("Choose a workstation, then click where you want it. You pay only when placed. Esc or right-click cancels.",true);break;
                 case 1:DrawRoomUpgrades();break;
                 case 2:
-                    Text("Crew training · Tier "+C.employeeTier);Text("+3 percentage points of success per tier for Inbox shuffle and Neon pitch.",true);
+                    Text("Crew training · Tier "+C.employeeTier);Text("+3 percentage points of success per tier for Phantom Giveaway and Moonshot Club.",true);
                     Action("Train crew · "+Money(Rules.TierCost(C.employeeTier+1)),()=>Tier("crew",C.employeeTier,()=>C.employeeTier++),CanAct && C.employeeTier<5 && state.cash>=Rules.TierCost(C.employeeTier+1));
-                    Text("Product training · Tier "+C.productTier);Text("+3 percentage points per tier for Parcel puzzle.",true);
+                    Text("Campaign training · Tier "+C.productTier);Text("+3 percentage points per tier for Mirage Storefront.",true);
                     Action("Train products · "+Money(Rules.TierCost(C.productTier+1)),()=>Tier("products",C.productTier,()=>C.productTier++),CanAct && C.productTier<5 && state.cash>=Rules.TierCost(C.productTier+1));
                     Space();Text("Security · Tier "+C.securityTier);Text("Protection against connection incidents: "+Rules.Chance(C.securityTier)+"%.",true);
                     Action("Improve security · "+Money(Rules.TierCost(C.securityTier+1)),()=>Tier("security",C.securityTier,()=>C.securityTier++),CanAct && C.securityTier<5 && state.cash>=Rules.TierCost(C.securityTier+1));break;
@@ -151,7 +154,7 @@ namespace ScammerTown
             Label(352,162,600,42,w.name,title);
             Label(352,209,650,28,"Skill "+w.skill+" / 5   ·   $"+w.salary+" per day   ·   "+w.completed+" jobs completed",small);
             if(Button(1036,162,60,"×",true,36))workerModal=false;
-            string[] tabs={"Profile","Assignment","Desk"};
+            string[] tabs={"Profile","Campaigns","Desk"};
             for(int i=0;i<3;i++)
             {
                 if(Button(352+i*247,252,235,tabs[i],true,38,workerPage==i)){workerPage=i;workerScroll=Vector2.zero;}
@@ -203,14 +206,14 @@ namespace ScammerTown
                 Label(x+14,y+12,332,28,j.name,heading);
                 float seconds=Management.Duration(C,w,state.active,i);
                 Label(x+14,y+45,332,45,Money(j.pay*(state.active==2 ? 1.15f : 1))+" per success · "+Mathf.CeilToInt(seconds)+"s\n"+Mathf.RoundToInt(Management.Chance(C,w,i))+"% success"+ (i==3 ? " · No desk needed" : " · Partial results pay 15%"),small);
-                Label(x+14,y+92,332,30,locked ? "Unlock: complete 5 jobs" : needsDesk ? "Place a desk before assigning this job" : w.assignment==i ? "Currently assigned · repeats automatically" : "Repeats automatically · no fee",small);
+                Label(x+14,y+92,332,30,locked ? "Unlock: complete 5 campaigns / shifts" : needsDesk ? "Place a laptop or desktop first" : "Suspicion +"+OfficeProgression.SuspicionGain(i)+" per result"+(i==3?" · Legitimate work":" · +3 on failure"),small);
                 if(Button(x+14,y+128,332,locked ? "Locked" : w.assignment==i ? "Assigned" : "Assign "+w.name,CanAct && !locked && !needsDesk && w.assignment!=i,34))
                 {
                     if(Management.SetAssignment(state,state.active,w,job))
                     {Save();PlayFeedback(false);workerPage=0;Notify(w.name+" assigned to "+j.name+(w.job!=i ? " after the current job." : ". Jobs repeat automatically."));}
                 }
             }
-            Label(352,701,736,35,"Changes take effect after the current job. Esc or × closes this profile.",small);
+            Label(352,701,736,45,"Fictional campaigns only. At 100 suspicion: 30s freeze and 5% cash penalty (max $500). Lay low pauses the office to reduce suspicion.",small);
         }
     }
 }

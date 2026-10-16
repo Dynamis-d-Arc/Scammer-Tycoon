@@ -91,6 +91,8 @@ namespace ScammerTown
             GUI.EndGroup();
             Label(24,88,650,24,placingFurniture ? heldItem.Name + (purchaseCompany != null ? " · " + Money(purchasePrice) + " on placement" : " · from storage") : arrangingRoom ? "Drag furniture · R rotates · Esc finishes" : "Drag furniture to move · Click to select · R rotates",small);
             // Camera controls belong together; the reset action is in the room toolbar.
+            if(state.incidentCompany<0 && Button(814,84,250,C.lockdown>0?"Office paused: "+Mathf.CeilToInt(C.lockdown)+"s":"Lay low · pause office 30s",CanAct && C.lockdown<=0,32))
+            { if(OfficeProgression.LayLow(state)){Save();Notify("Office paused for 30 seconds. Suspicion falls by 0.6 per second; assignments resume afterward.");} }
             Label(1090,88,70,24,"Zoom",small);
             zoom=GUI.HorizontalSlider(new Rect(1168,97,228,20),zoom,.5f,Mathf.Max(3f,C.Size/5f));
 
