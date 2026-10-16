@@ -90,34 +90,27 @@ namespace ScammerTown
             GUI.color=Color.white;
             GUI.EndGroup();
             Label(24,88,650,24,placingFurniture ? heldItem.Name + (purchaseCompany != null ? " · " + Money(purchasePrice) + " on placement" : " · from storage") : arrangingRoom ? "Drag furniture · R rotates · Esc finishes" : "Drag furniture to move · Click to select · R rotates",small);
-            if(Button(1040,86,160,"Fit room",true,30)){pixelCameraCompany=-1;PixelCamera();}
-            zoom=GUI.HorizontalSlider(new Rect(1215,97,190,20),zoom,.5f,Mathf.Max(3f,C.Size/5f));
+            // Camera controls belong together; the reset action is in the room toolbar.
+            Label(1090,88,70,24,"Zoom",small);
+            zoom=GUI.HorizontalSlider(new Rect(1168,97,228,20),zoom,.5f,Mathf.Max(3f,C.Size/5f));
 
             int stored=C.layout.FindAll(item=>!item.placed).Count;
             selected=C.layout.Find(item=>item.id==selectedItemId);
-            Label(24,742,1050,25,selected == null ? "" :
+            Label(232,718,976,25,selected == null ? "Select furniture to rotate or store it.  ·  Scroll to zoom; drag empty floor to pan." :
                 selected.Name + "  •  " + (selected.placed ? "Tile " + (selected.x+1) + ", " + (selected.y+1) : "In storage") + "  •  " + selected.rotation*90 + "°",small);
-            if(!arrangingRoom)
-            {
-                Label(24,785,440,24,"Scroll to zoom · Drag empty floor to pan",small);
-                if(selected!=null)
-                {
-                    if(Button(490,775,120,"Rotate (R)",heldItem==null,34))RotateFurniture(selected);
-                    if(Button(620,775,120,"Store",selected.placed && heldItem==null,34))StoreFurniture(selected);
-                }
-                if(Button(760,775,210,"Storage ("+stored+")",true,34))OpenFurnitureStorage();
-                if(Button(1050,775,170,"Expand floor",true,34))Navigate("Properties");
-                if(Button(1232,775,184,"Fit office",true,34)){pixelCameraCompany=-1;PixelCamera();}
-            }
-            else
-            {
-                if(Button(250,775,180,"Rotate (R)",selected!=null,34))RotateFurniture(selected);
-                if(Button(442,775,180,"Store selected",selected!=null && selected.placed && heldItem==null,34))
-                StoreFurniture(selected);
-                if(Button(634,775,230,"Storage ("+stored+")",true,34))OpenFurnitureStorage();
-                if(Button(876,775,160,"Fit office",heldItem==null || placingFurniture,34)){pixelCameraCompany=-1;PixelCamera();}
-                if(Button(1048,775,180,"Done arranging",true,34)){arrangingRoom=false;CancelPlacement();}
-            }
+            Panel(new Rect(220,750,1000,56),new Color(.065f,.095f,.16f));
+            if(RoomTool(0,"Rotate (R)",selected!=null || heldItem!=null))RotateFurniture(selected);
+            if(RoomTool(1,"Store selected",selected!=null && selected.placed && heldItem==null))StoreFurniture(selected);
+            if(RoomTool(2,"Storage ("+stored+")"))OpenFurnitureStorage();
+            if(RoomTool(3,"Expand floor"))Navigate("Properties");
+            if(RoomTool(4,"Fit office",heldItem==null || placingFurniture)){pixelCameraCompany=-1;PixelCamera();}
+            if(RoomTool(5,placingFurniture?"Cancel placement":"Done arranging",arrangingRoom || placingFurniture,arrangingRoom || placingFurniture))
+            { arrangingRoom=false;CancelPlacement(); }
+        }
+        bool RoomTool(int index,string label,bool enabled=true,bool primary=false)
+        {
+            Rect r=RoomToolRect(index);
+            return Button(r.x,r.y,r.width,label,enabled,r.height,primary);
         }
 
         // A shop preview is transient: it is neither owned nor charged until a valid click.

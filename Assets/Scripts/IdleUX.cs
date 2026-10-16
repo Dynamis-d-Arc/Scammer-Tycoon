@@ -154,8 +154,7 @@ namespace ScammerTown
             string[] tabs={"Profile","Assignment","Desk"};
             for(int i=0;i<3;i++)
             {
-                GUI.backgroundColor=workerPage==i ? new Color(.63f,.8f,.72f) : Color.white;
-                if(Button(352+i*247,252,235,tabs[i],true,38)){workerPage=i;workerScroll=Vector2.zero;}
+                if(Button(352+i*247,252,235,tabs[i],true,38,workerPage==i)){workerPage=i;workerScroll=Vector2.zero;}
             }
             GUI.backgroundColor=Color.white;
             if(workerPage==1)DrawAssignmentChoices(w);

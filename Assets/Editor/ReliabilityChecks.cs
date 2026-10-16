@@ -9,6 +9,19 @@ public static class ReliabilityChecks
     {
         int count=0;
         Action<bool,string> check=(ok,message)=>{if(!ok)throw new Exception("RELIABILITY: "+message);count++;};
+        for(int i=0;i<7;i++)
+        {
+            Rect r=ScammerTownGame.DockButtonRect(i);
+            check(r.x>=220 && r.xMax<=1220 && r.y>=816 && r.yMax<=888,"navigation stays inside centered dock");
+            if(i>0)check(r.x-ScammerTownGame.DockButtonRect(i-1).xMax>=4,"navigation has consistent non-overlapping gaps");
+        }
+        for(int i=0;i<6;i++)
+        {
+            Rect r=ScammerTownGame.RoomToolRect(i);
+            check(r.x>=220 && r.xMax<=1220 && r.y>=750 && r.yMax<=806,"room controls stay inside their toolbar");
+            if(i>0)check(r.x-ScammerTownGame.RoomToolRect(i-1).xMax>=8,"room controls have consistent non-overlapping gaps");
+            check(r.yMax<ScammerTownGame.DockButtonRect(0).y,"room controls never overlap navigation");
+        }
         foreach(int size in new[]{5,10,25,100})foreach(float tile in new[]{20f,90f,180f})
         {
             var origin=new Vector2(720,320);var art=RoomLayout.FloorArtworkRect(size,tile,origin);

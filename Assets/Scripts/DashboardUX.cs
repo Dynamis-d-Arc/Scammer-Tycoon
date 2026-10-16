@@ -7,7 +7,7 @@ namespace ScammerTown
         bool shopModal, needsAssignmentOnly, managementPanel;
         string teamSearch="";
         Vector2 shopScroll;
-        Texture2D uiNormal,uiHover,uiPressed,uiPanel;
+        Texture2D uiNormal,uiHover,uiPressed,uiPanel,uiAccent,uiAccentHover,uiAccentPressed,uiDisabled;
         readonly Color accent=new Color(.28f,.95f,.77f);
         Texture2D Solid(Color color)
         {
@@ -31,44 +31,42 @@ namespace ScammerTown
             state.goal==2 ? state.companies[0].Stations>=2 : state.goal==3 ? state.companies[0].employeeCount>=2 : state.goal==4 && state.branchOwned;
         void DrawTopBar()
         {
-            Panel(new Rect(345,12,750,62),new Color(.065f,.095f,.16f));
-            PixelIcon(0,new Rect(364,28,27,27),new Color(1,.76f,.38f));
-            Label(404,27,258,32,cityView ? "Scammer Town" : CompanyName,heading);
+            Panel(new Rect(24,12,1392,62),new Color(.065f,.095f,.16f));
+            PixelIcon(0,new Rect(44,29,27,27),new Color(1,.76f,.38f));
+            Label(86,20,420,25,cityView ? "Scammer Town" : CompanyName,heading);
             PixelIcon(5,new Rect(677,28,27,27),new Color(1,.76f,.38f));
             Label(716,25,170,36,Money(state.cash),stat);
             PixelIcon(1,new Rect(880,28,27,27),new Color(1,.76f,.38f));
             Label(919,29,165,30,C.workers.FindAll(w=>w.job>=0).Count+" working",heading);
             bool allowed=!workerModal && !shopModal && !managementPanel && !help && !confirmReset && !furnitureStorageOpen;
-            if(Button(1104,12,92,state.paused ? "Play" : "Pause",allowed,62))state.paused=!state.paused;
-            if(Button(1206,12,92,"Menu",allowed,62))Navigate("Settings");
-            Label(24,22,290,24,"SCAMMER TOWN / "+(cityView?"CITY":"OFFICE"),small);
+            if(Button(1184,23,100,state.paused ? "Resume" : "Pause",allowed,40))state.paused=!state.paused;
+            if(Button(1296,23,100,"Menu",allowed,40))Navigate("Settings");
+            Label(86,46,420,20,"SCAMMER TOWN / "+(cityView?"CITY":"OFFICE"),small);
         }
         void DrawBottomDock()
         {
-            Panel(new Rect(455,803,530,88),new Color(.065f,.095f,.16f));
-            string[] labels={"Office","Team","Shop","City","Arrange"};
-            for(int i=0;i<5;i++)
+            Panel(new Rect(220,816,1000,72),new Color(.065f,.095f,.16f));
+            string[] labels={"Office","Team","Shop","City","Arrange","Contracts",GoalReady?"Claim reward":"Goals"};
+            for(int i=0;i<labels.Length;i++)
             {
-                bool selected=i==0&&!cityView&&!arrangingRoom || i==3&&cityView || i==4&&arrangingRoom;
-                GUI.backgroundColor=selected?new Color(.28f,.95f,.77f):Color.white;
-                if(Button(465+i*103,813,98,"",true,68))
+                bool selected=i==0&&!cityView&&!arrangingRoom&&!managementPanel&&!shopModal || i==1&&managementPanel&&tab=="Employees" || i==2&&shopModal || i==3&&cityView || i==4&&arrangingRoom || i==5&&managementPanel&&tab=="Contracts" || i==6&&managementPanel&&tab=="Goals";
+                bool highlighted=selected || i==6&&GoalReady;
+                Rect slot=DockButtonRect(i);
+                if(Button(slot.x,slot.y,slot.width,"",true,slot.height,highlighted))
                 {
                     if(i==0)Navigate("Operations");
                     else if(i==1)Navigate("Employees");
                     else if(i==2)OpenShop(0);
                     else if(i==3)OpenCity();
-                    else {cityView=false;arrangingRoom=!arrangingRoom;CancelPlacement();}
+                    else if(i==4){cityView=false;arrangingRoom=!arrangingRoom;CancelPlacement();}
+                    else Navigate(i==5?"Contracts":"Goals");
                 }
-                GUI.backgroundColor=Color.white;
-                if(selected)Panel(new Rect(465+i*103,813,98,68),new Color(.28f,.95f,.77f));
-                PixelIcon(i,new Rect(498+i*103,820,30,30),selected?new Color(.055f,.1f,.15f):new Color(1,.76f,.38f));
-                var labelStyle=new GUIStyle(body){alignment=TextAnchor.MiddleCenter,fontStyle=FontStyle.Bold,normal={textColor=selected?new Color(.035f,.08f,.12f):ink}};
-                GUI.Label(new Rect(465+i*103,853,98,24),labels[i],labelStyle);
+                PixelIcon(i<5?i:i==5?6:7,new Rect(slot.center.x-12,slot.y+5,24,24),highlighted&&GUI.enabled?new Color(.055f,.1f,.15f):new Color(1,.76f,.38f));
+                GUI.Label(new Rect(slot.x,slot.y+31,slot.width,22),labels[i],highlighted&&GUI.enabled?dockSelectedLabel:dockLabel);
             }
-            if(Button(1000,840,180,state.contractActive?"Contract: "+state.contract.progress+"/"+state.contract.target:"Contracts",true,42))Navigate("Contracts");
-            if(Button(1190,840,225,GoalReady?"Claim goal reward":"Goals",true,42))Navigate("Goals");
-            Label(24,856,410,28,"1 Office   2 Team   3 Shop   4 City",small);
         }
+        public static Rect DockButtonRect(int index) => new Rect(232+index*140,824,136,56);
+        public static Rect RoomToolRect(int index) => new Rect(232+index*164,758,156,40);
         void DrawCompactAlert()
         {
             if(state.incidentCompany<0)return;
@@ -102,7 +100,7 @@ namespace ScammerTown
         }
         void PrimaryAction(string label,System.Action action,bool enabled=true)
         {
-            GUI.backgroundColor=accent;Action(label,action,enabled);GUI.backgroundColor=Color.white;
+            Action(label,action,enabled,true);
         }
         void DrawShopModal()
         {
@@ -115,8 +113,7 @@ namespace ScammerTown
             string[] names={"Workstations","Office upgrades","Training","Hire employees","Decorations"};
             for(int i=0;i<names.Length;i++)
             {
-                GUI.backgroundColor=shopPage==i ? accent : Color.white;
-                if(Button(258,232+i*58,190,names[i],true,46)){shopPage=i;shopScroll=Vector2.zero;}
+                if(Button(258,232+i*58,190,names[i],true,46,shopPage==i)){shopPage=i;shopScroll=Vector2.zero;}
             }
             GUI.backgroundColor=Color.white;
             Label(258,550,184,70,"Work continues while you browse. Purchases apply to this office.",small);

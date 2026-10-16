@@ -99,16 +99,17 @@ namespace ScammerTown
             const int size=32;var texture=new Texture2D(size,size,TextureFormat.RGBA32,false);
             for(int y=0;y<size;y++)for(int x=0;x<size;x++)
             {
-                int edge=Mathf.Min(x,y,size-1-x,size-1-y);
-                bool cut=(x<3||x>28)&&(y<3||y>28);
-                Color c=color;
-                if(edge==0)c=new Color(.015f,.025f,.05f,color.a);
-                else if(edge==1)c=new Color(.3f,.48f,.67f,color.a);
-                else if(edge==2)c=new Color(.13f,.25f,.39f,color.a);
-                if(cut)c=Color.clear;
+                // Rounded nine-slice corners with a quiet rim and a shallow bevel.
+                float dx=Mathf.Max(Mathf.Abs(x-15.5f)-8.5f,0);
+                float dy=Mathf.Max(Mathf.Abs(y-15.5f)-8.5f,0);
+                float distance=Mathf.Sqrt(dx*dx+dy*dy)-7;
+                Color c=Color.Lerp(color,Color.white,.035f*y/(size-1));
+                if(distance> -1.5f)c=Color.Lerp(color,Color.white,.19f);
+                if(y<2)c=Color.Lerp(color,Color.black,.25f);
+                c.a=color.a*Mathf.Clamp01(.5f-distance);
                 texture.SetPixel(x,y,c);
             }
-            texture.Apply();texture.filterMode=FilterMode.Point;texture.wrapMode=TextureWrapMode.Clamp;return texture;
+            texture.Apply();texture.filterMode=FilterMode.Bilinear;texture.wrapMode=TextureWrapMode.Clamp;return texture;
         }
         void PixelIcon(int kind,Rect rect,Color color)
         {
@@ -118,9 +119,11 @@ namespace ScammerTown
                 "11000000/01111111/01111110/00111100/00111100/00000000/00100100/00100100",
                 "00111000/00101000/11111011/10101011/11111011/10101011/11111111/11111111",
                 "11100111/10100101/11100111/00000000/00000000/11100111/10100101/11100111",
-                "00111000/01111100/11010110/11101110/11010110/01111100/00111000/00000000"
+                "00111000/01111100/11010110/11101110/11010110/01111100/00111000/00000000",
+                "00111100/01111110/01000010/01011010/01000010/01011010/01111110/00000000",
+                "00111100/11111111/10111101/01111110/00111100/00011000/00111100/01111110"
             };
-            string[] rows=grids[Mathf.Clamp(kind,0,5)].Split('/');
+            string[] rows=grids[Mathf.Clamp(kind,0,7)].Split('/');
             Color old=GUI.color;GUI.color=color;
             for(int y=0;y<8;y++)for(int x=0;x<8;x++)if(rows[y][x]=='1')
                 GUI.DrawTexture(new Rect(rect.x+x*rect.width/8,rect.y+y*rect.height/8,rect.width/8,rect.height/8),Texture2D.whiteTexture);

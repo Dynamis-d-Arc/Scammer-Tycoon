@@ -16,7 +16,7 @@ namespace ScammerTown
         Vector2 scroll;
         Vector2 viewportScroll;
         bool confirmReset, help;
-        GUIStyle title, heading, body, small, button, stat, card;
+        [NonSerialized] GUIStyle title, heading, body, small, button, primaryButton, disabledButton, dockLabel, dockSelectedLabel, stat, card;
         readonly Color ink = new Color(.94f, .96f, 1f), muted = new Color(.58f, .69f, .8f), lime = new Color(.25f, .95f, .76f);
         string SavePath => Path.Combine(Application.persistentDataPath, "scammer-town-v1.json");
         Company C => state.Current;
@@ -103,24 +103,42 @@ namespace ScammerTown
         }
         void OnApplicationQuit() => Save();
         void OnApplicationPause(bool paused) { if (paused) Save(); }
-        void OnDestroy() { if (diamond != null) Destroy(diamond);  if(keyboardArt!=null) foreach(var texture in keyboardArt) Destroy(texture); if(employeeArt!=null) foreach(var texture in employeeArt) Destroy(texture); if(typingArmArt!=null) foreach(var texture in typingArmArt) Destroy(texture); if(uiPanel!=null)Destroy(uiPanel);if(uiNormal!=null)Destroy(uiNormal);if(uiHover!=null)Destroy(uiHover);if(uiPressed!=null)Destroy(uiPressed); if(rewardSound!=null)Destroy(rewardSound);if(buySound!=null)Destroy(buySound); }
+        void OnDestroy() { if (diamond != null) Destroy(diamond);  if(keyboardArt!=null) foreach(var texture in keyboardArt) Destroy(texture); if(employeeArt!=null) foreach(var texture in employeeArt) Destroy(texture); if(typingArmArt!=null) foreach(var texture in typingArmArt) Destroy(texture); foreach(var texture in new[]{uiPanel,uiNormal,uiHover,uiPressed,uiAccent,uiAccentHover,uiAccentPressed,uiDisabled})if(texture!=null)Destroy(texture); if(rewardSound!=null)Destroy(rewardSound);if(buySound!=null)Destroy(buySound); }
 
         void Styles()
         {
-            if (title != null) return;
+            if (title != null && primaryButton != null && disabledButton != null && dockLabel != null && dockSelectedLabel != null) return;
+            // Unity can retain old styles across a live script reload while new fields are null.
+            foreach(var texture in new[]{uiPanel,uiNormal,uiHover,uiPressed,uiAccent,uiAccentHover,uiAccentPressed,uiDisabled})
+                if(texture!=null)Destroy(texture);
+            cityMarkerStyle=null;
             title = new GUIStyle(GUI.skin.label) { fontSize = 29, fontStyle = FontStyle.Bold, normal = { textColor = ink } };
             heading = new GUIStyle(title) { fontSize = 18 };
             body = new GUIStyle(GUI.skin.label) { fontSize = 15, wordWrap = true, normal = { textColor = ink } };
             small = new GUIStyle(body) { fontSize = 13, normal = { textColor = muted } };
             stat = new GUIStyle(title) { fontSize = 25, normal = { textColor = lime } };
-            button = new GUIStyle(GUI.skin.button) { fontSize = 14, wordWrap = true, alignment = TextAnchor.MiddleLeft, padding = new RectOffset(14, 10, 4, 4), normal = { textColor = ink } };
-            uiNormal=PixelSurface(new Color(.065f,.105f,.18f));uiHover=PixelSurface(new Color(.12f,.24f,.32f));uiPressed=PixelSurface(new Color(.12f,.36f,.33f));
+            button = new GUIStyle(GUI.skin.button) { fontSize = 15, fontStyle=FontStyle.Bold, wordWrap = true, alignment = TextAnchor.MiddleCenter, padding = new RectOffset(12, 12, 5, 5), normal = { textColor = ink } };
+            uiNormal=PixelSurface(new Color(.12f,.18f,.26f));uiHover=PixelSurface(new Color(.18f,.29f,.37f));uiPressed=PixelSurface(new Color(.075f,.14f,.20f));
             button.normal.background=uiNormal;button.hover.background=uiHover;button.active.background=uiPressed;
             button.onNormal.background=uiPressed;button.onHover.background=uiHover;
-            button.border=new RectOffset(4,4,4,4);button.fontSize=14;
-            button.hover.textColor=ink;button.active.textColor=ink;button.onNormal.textColor=ink;
+            button.border=new RectOffset(8,8,8,8);
+            button.hover.textColor=Color.white;button.active.textColor=accent;button.onNormal.textColor=ink;
+            button.focused.background=uiHover;button.focused.textColor=Color.white;
+            button.onActive.background=uiPressed;button.onFocused.background=uiHover;
+            button.onHover.textColor=ink;button.onActive.textColor=accent;button.onFocused.textColor=ink;
+            uiAccent=PixelSurface(new Color(.28f,.88f,.73f));uiAccentHover=PixelSurface(new Color(.44f,.98f,.83f));
+            uiAccentPressed=PixelSurface(new Color(.19f,.69f,.57f));uiDisabled=PixelSurface(new Color(.085f,.12f,.17f));
+            primaryButton=new GUIStyle(button);
+            SetButtonState(primaryButton.normal,uiAccent,new Color(.025f,.12f,.13f));
+            SetButtonState(primaryButton.hover,uiAccentHover,new Color(.025f,.12f,.13f));
+            SetButtonState(primaryButton.focused,uiAccentHover,new Color(.025f,.12f,.13f));
+            SetButtonState(primaryButton.active,uiAccentPressed,new Color(.025f,.12f,.13f));
+            disabledButton=new GUIStyle(button);
+            SetButtonState(disabledButton.normal,uiDisabled,new Color(.56f,.64f,.72f));
+            dockLabel=new GUIStyle(body){alignment=TextAnchor.MiddleCenter,fontSize=14,fontStyle=FontStyle.Bold};
+            dockSelectedLabel=new GUIStyle(dockLabel);dockSelectedLabel.normal.textColor=new Color(.025f,.12f,.13f);
             uiPanel=PixelSurface(Color.white);
-            card = new GUIStyle(GUI.skin.box) { normal = { background = uiPanel }, border=new RectOffset(4,4,4,4) };
+            card = new GUIStyle(GUI.skin.box) { normal = { background = uiPanel }, border=new RectOffset(8,8,8,8) };
         }
         void Panel(Rect r, Color c)
         {
@@ -128,16 +146,18 @@ namespace ScammerTown
             if(r.width<32 || r.height<32 || r.width>=1440){GUI.color=c;GUI.DrawTexture(r,Texture2D.whiteTexture);}
             else
             {
-                GUI.color=new Color(.24f,.38f,.54f,c.a);GUI.DrawTexture(r,Texture2D.whiteTexture);
-                GUI.color=c;GUI.DrawTexture(new Rect(r.x+2,r.y+2,r.width-4,r.height-4),Texture2D.whiteTexture);
+                GUI.color=new Color(0,0,0,c.a*.22f);GUI.Box(new Rect(r.x,r.y+3,r.width,r.height),GUIContent.none,card);
+                GUI.color=c;GUI.Box(r,GUIContent.none,card);
             }
             GUI.color=old;
         }
         void Label(float x, float y, float w, float h, string text, GUIStyle style = null) => GUI.Label(new Rect(x,y,w,h), text, style ?? body);
-        bool Button(float x, float y, float w, string text, bool enabled = true, float height = 40)
+        static void SetButtonState(GUIStyleState target,Texture2D background,Color color)
+        { target.background=background;target.textColor=color; }
+        bool Button(float x, float y, float w, string text, bool enabled = true, float height = 40, bool primary = false)
         {
             bool old = GUI.enabled; GUI.enabled = old && enabled;
-            bool hit = GUI.Button(new Rect(x,y,w,height), text, button); GUI.enabled = old; return hit;
+            bool hit = GUI.Button(new Rect(x,y,w,height), text, !GUI.enabled?disabledButton:primary?primaryButton:button); GUI.enabled = old; return hit;
         }
         void Bar(float x, float y, float w, float value, Color color)
         { Panel(new Rect(x,y,w,5), new Color(.14f,.2f,.28f)); Panel(new Rect(x,y,w * Mathf.Clamp01(value / 100),5),color); }
@@ -236,11 +256,11 @@ namespace ScammerTown
         }
         void Text(string text,bool dim=false) { GUILayout.Label(text,dim ? small : body); GUILayout.Space(10); }
         void Space() => GUILayout.Space(18);
-        void Action(string text,Action action,bool enabled=true)
+        void Action(string text,Action action,bool enabled=true,bool primary=false)
         {
             bool previous=GUI.enabled; GUI.enabled=previous && enabled;
-            if(GUILayout.Button(text,button,GUILayout.MinHeight(44))) action();
-            GUI.enabled=previous; GUILayout.Space(8);
+            if(GUILayout.Button(text,!GUI.enabled?disabledButton:primary?primaryButton:button,GUILayout.MinHeight(46))) action();
+            GUI.enabled=previous; GUILayout.Space(10);
         }
         void TierPanel(string label,int tier,Action upgrade)
         {
