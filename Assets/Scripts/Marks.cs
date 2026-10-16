@@ -157,44 +157,115 @@ namespace ScammerTown
             kicker="Nothing to see here. Probably.";return Pick(Fluff,s.day);
         }
 
-        // 16×16 portrait, row 0 at the top. Features follow the mark's seed and type.
+        public const int PortraitSize=32;
+        // 32×32 bust in the house style: lit from the upper left, three-tone skin and
+        // hair, near-black outline. Row 0 is the top. Features follow the seed and type.
         public static Color32[] Portrait(Mark mark)
         {
-            const int n=16;var px=new Color32[n*n];
+            const int n=PortraitSize;var px=new Color32[n*n];var body=new bool[n*n];
             int seed=mark.seed;
-            Color32 bg=TypeColors[mark.typeIndex];
-            Color32[] skins={new Color32(255,214,178,255),new Color32(234,184,140,255),new Color32(198,140,96,255),new Color32(150,100,66,255),new Color32(104,68,44,255)};
-            Color32[] hairs={new Color32(30,24,22,255),new Color32(96,60,34,255),new Color32(222,184,96,255),new Color32(184,82,40,255),new Color32(168,168,176,255),new Color32(236,236,240,255)};
-            Color32[] shirts={new Color32(196,72,72,255),new Color32(70,110,180,255),new Color32(230,200,90,255),new Color32(90,150,110,255),new Color32(150,96,170,255),new Color32(220,140,170,255)};
-            Color32 skin=Pick(skins,Hash(seed,11)),hair=Pick(hairs,Hash(seed,12)),shirt=Pick(shirts,Hash(seed,13));
-            Color32 shadow=new Color32((byte)(skin.r*.82f),(byte)(skin.g*.78f),(byte)(skin.b*.78f),255);
-            Color32 ink=new Color32(28,22,30,255);
-            int style=Hash(seed,14)%5,extra=Hash(seed,15)%6;
-            void Set(int x,int y,Color32 c){if(x>=0 && x<n && y>=0 && y<n)px[y*n+x]=c;}
-            void Block(int x0,int y0,int x1,int y1,Color32 c){for(int y=y0;y<=y1;y++)for(int x=x0;x<=x1;x++)Set(x,y,c);}
-            Block(0,0,15,15,bg);
-            Block(3,13,12,15,shirt);Block(6,11,9,12,skin);Set(6,12,shadow);Set(9,12,shadow);
-            Block(4,3,11,10,skin);Block(5,10,10,10,shadow);Set(3,6,skin);Set(12,6,skin);Set(3,7,shadow);Set(12,7,shadow);
-            if(style==1 || style==3){Block(4,2,11,3,hair);Set(4,4,hair);Set(11,4,hair);}
-            if(style==2){Block(4,2,11,3,hair);Block(3,3,4,10,hair);Block(11,3,12,10,hair);}
-            if(style==3)Block(6,0,9,1,hair);
-            if(style==4){Block(4,1,11,3,hair);for(int x=3;x<=12;x+=2)Set(x,1,bg);Set(3,4,hair);Set(12,4,hair);}
-            if(style==0){Set(4,5,hair);Set(11,5,hair);Set(4,4,hair);Set(11,4,hair);}
-            // Eyes and expression by type.
-            int t=mark.typeIndex;
-            Color32 eye=t==0?new Color32(80,200,90,255):ink;
-            Set(6,6,eye);Set(9,6,eye);
-            if(t==2){Set(6,5,ink);Set(9,5,ink);}
-            if(t==3){Set(8,4,hair);Set(9,4,hair);Set(10,4,hair);}
-            if(t==5){Set(5,6,shadow);Set(10,6,shadow);Set(6,5,shadow);Set(9,5,shadow);}
-            if(t==1){Set(5,8,new Color32(240,130,130,255));Set(10,8,new Color32(240,130,130,255));}
-            bool smile=t==0 || t==2 || t==4;
-            Set(7,9,ink);Set(8,9,ink);if(smile){Set(6,8,ink);Set(9,8,ink);}
-            if(t==4 || extra==0){Block(5,6,7,6,ink);Block(8,6,10,6,ink);Set(5,5,ink);Set(10,5,ink);}
-            else if(extra==1){Set(5,6,ink);Set(7,6,ink);Set(8,6,ink);Set(10,6,ink);}
-            if(extra==2)Block(6,8,9,8,hair);
-            if(extra==3){Block(4,8,11,10,hair);Set(7,9,ink);Set(8,9,ink);}
-            if(extra==4){Block(3,2,12,3,shirt);Block(3,3,13,3,ink);}
+            Color bg=TypeColors[Mathf.Clamp(mark.typeIndex,0,TypeColors.Length-1)];
+            Color[] skins={new Color(1f,.84f,.7f),new Color(.92f,.72f,.55f),new Color(.78f,.55f,.38f),new Color(.59f,.39f,.26f),new Color(.41f,.27f,.17f)};
+            Color[] hairs={new Color(.13f,.1f,.1f),new Color(.38f,.24f,.13f),new Color(.87f,.72f,.38f),new Color(.72f,.32f,.16f),new Color(.66f,.66f,.7f),new Color(.93f,.93f,.95f)};
+            Color[] shirts={new Color(.77f,.28f,.28f),new Color(.27f,.43f,.71f),new Color(.9f,.78f,.35f),new Color(.35f,.59f,.43f),new Color(.59f,.38f,.67f),new Color(.86f,.55f,.67f),new Color(.3f,.3f,.36f)};
+            Color skin=Pick(skins,Hash(seed,11)),hair=Pick(hairs,Hash(seed,12)),shirt=Pick(shirts,Hash(seed,13));
+            Color ink=new Color(.016f,.008f,.004f),white=new Color(.96f,.95f,.92f),mouth=new Color(.55f,.2f,.2f);
+            int style=Hash(seed,14)%5,extra=Hash(seed,15)%7,t=mark.typeIndex;
+            Color Shade(Color c,float k) => new Color(Mathf.Clamp01(c.r*k),Mathf.Clamp01(c.g*k*(k<1?.96f:1)),Mathf.Clamp01(c.b*k*(k<1?.92f:1)),1);
+            bool Inside(float x,float y,float cx,float cy,float rx,float ry) => (x-cx)*(x-cx)/(rx*rx)+(y-cy)*(y-cy)/(ry*ry)<=1;
+            void Put(int x,int y,Color c,bool part=true){if(x<0 || y<0 || x>=n || y>=n)return;px[y*n+x]=c;if(part)body[y*n+x]=true;}
+            // Background: the mark type's colour, a little lighter at the top.
+            for(int y=0;y<n;y++)for(int x=0;x<n;x++)px[y*n+x]=Shade(bg,1.08f-.22f*y/n);
+            for(int y=0;y<n;y++)for(int x=0;x<n;x++)
+            {
+                float fx=x+.5f,fy=y+.5f;
+                if(fy>=23 && Inside(fx,fy,16,34,13.5f,10.5f))
+                {
+                    Color c=fx>20?Shade(shirt,.78f):fx<9?Shade(shirt,1.08f):shirt;
+                    if(Mathf.Abs(fx-16)<(fy-22)*.55f && fy<28)c=Shade(skin,.82f);
+                    Put(x,y,c);
+                }
+                else if(fx>12.5f && fx<19.5f && fy>=19 && fy<25)Put(x,y,Shade(skin,fx>17?.7f:.8f));
+                if(Inside(fx,fy,16,13.5f,6.6f,8.2f) || Inside(fx,fy,9.3f,14.5f,1.4f,2.1f) || Inside(fx,fy,22.7f,14.5f,1.4f,2.1f))
+                {
+                    Color c=skin;
+                    if(fx>19.5f || fy>19.5f)c=Shade(skin,.8f);
+                    else if(fx<13 && fy<12)c=Shade(skin,1.07f);
+                    Put(x,y,c);
+                }
+            }
+            // Hair, with a one-pixel rim light along its upper-left edge.
+            var hairMask=new bool[n*n];
+            for(int y=0;y<n;y++)for(int x=0;x<n;x++)
+            {
+                float fx=x+.5f,fy=y+.5f;bool h=false;
+                bool crown=Inside(fx,fy,16,12.5f,7.6f,9f) && fy<9.5f+.9f*Mathf.Sin(fx*1.4f);
+                bool sides=Inside(fx,fy,16,12.5f,7.6f,9f) && Mathf.Abs(fx-16)>5.6f && fy<13.5f;
+                if(style==0)h=Inside(fx,fy,16,13.5f,7.2f,8.6f) && Mathf.Abs(fx-16)>5.2f && fy>10 && fy<15;
+                if(style==1 || style==3)h=crown || sides;
+                if(style==2)h=crown || (Inside(fx,fy,16,15,8.8f,11.5f) && Mathf.Abs(fx-16)>5.4f && fy<25);
+                if(style==3)h|=Inside(fx,fy,16,3.6f,3.2f,3);
+                if(style==4)foreach(var c in new[]{new Vector2(9.5f,8),new Vector2(12,5),new Vector2(16,4),new Vector2(20,5),new Vector2(22.5f,8),new Vector2(8.8f,11.5f),new Vector2(23.2f,11.5f)})
+                    h|=Inside(fx,fy,c.x,c.y,2.8f,2.8f) && fy<13;
+                if(!h)continue;
+                hairMask[y*n+x]=true;
+                Put(x,y,fx>19?Shade(hair,.72f):hair);
+            }
+            for(int y=1;y<n;y++)for(int x=1;x<n;x++)
+                if(hairMask[y*n+x] && x<17 && (!hairMask[(y-1)*n+x] || !hairMask[y*n+x-1]))px[y*n+x]=Shade(hair,1.4f);
+            if(style==0){Put(12,7,Shade(skin,1.18f),false);Put(13,6,Shade(skin,1.18f),false);}
+            // Hat.
+            if(extra==4)for(int y=0;y<n;y++)for(int x=0;x<n;x++)
+            {
+                float fx=x+.5f,fy=y+.5f;
+                if(Inside(fx,fy,16,8.5f,7.8f,5.5f) && fy<8.5f)Put(x,y,fx>19?Shade(shirt,.75f):shirt);
+                else if(fy>=8 && fy<9.6f && fx>7 && fx<26)Put(x,y,Shade(shirt,.6f));
+            }
+            // Face: brows, eyes and expression by mark type.
+            Color brow=Shade(hair,.55f),pupil=t==0?new Color(.3f,.78f,.35f):ink;
+            void Eye(int x,bool wide)
+            {
+                Put(x,14,white,false);Put(x+1,14,pupil,false);
+                if(wide){Put(x,13,white,false);Put(x+1,13,white,false);Put(x,15,white,false);Put(x+1,15,pupil,false);}
+            }
+            if(t==4)
+            {
+                for(int x=10;x<=21;x++)Put(x,14,ink,false);
+                for(int x=10;x<=14;x++)Put(x,15,ink,false);for(int x=17;x<=21;x++)Put(x,15,ink,false);
+                Put(11,14,new Color(.55f,.6f,.8f),false);Put(18,14,new Color(.55f,.6f,.8f),false);
+            }
+            else if(t==3)
+            {
+                Eye(18,false);for(int x=12;x<=13;x++)Put(x,14,ink,false);
+                Put(17,11,brow,false);Put(18,11,brow,false);Put(19,12,brow,false);Put(12,12,brow,false);Put(13,12,brow,false);
+            }
+            else
+            {
+                Eye(12,t==2);Eye(18,t==2);
+                if(t==5){Put(12,13,Shade(skin,.75f),false);Put(13,13,Shade(skin,.75f),false);Put(18,13,Shade(skin,.75f),false);Put(19,13,Shade(skin,.75f),false);}
+                int browY=t==2?11:12;
+                Put(12,browY,brow,false);Put(13,browY,brow,false);Put(18,browY,brow,false);Put(19,browY,brow,false);
+                if(t==1){Put(11,browY+1,brow,false);Put(20,browY+1,brow,false);}
+            }
+            if(extra==1 && t!=4){for(int x=11;x<=14;x++){Put(x,13,ink,false);Put(x,16,ink,false);}for(int x=17;x<=20;x++){Put(x,13,ink,false);Put(x,16,ink,false);}Put(15,14,ink,false);Put(16,14,ink,false);}
+            Put(16,16,Shade(skin,.74f),false);Put(16,17,Shade(skin,.74f),false);Put(17,17,Shade(skin,.68f),false);
+            if(t==1){Put(11,17,new Color(.95f,.55f,.55f),false);Put(12,17,new Color(.95f,.55f,.55f),false);Put(19,17,new Color(.95f,.55f,.55f),false);Put(20,17,new Color(.95f,.55f,.55f),false);}
+            if(extra==2)for(int x=14;x<=18;x++)Put(x,18,Shade(hair,.85f),false);
+            if(extra==3)for(int y=17;y<=21;y++)for(int x=10;x<=21;x++)if(Inside(x+.5f,y+.5f,16,13.5f,6.6f,8.2f))Put(x,y,x>19?Shade(hair,.72f):hair,false);
+            if(t==2){Put(15,19,ink,false);Put(16,19,ink,false);Put(15,20,mouth,false);Put(16,20,mouth,false);}
+            else if(t==4){for(int x=14;x<=18;x++)Put(x,19,white,false);Put(13,18,ink,false);Put(19,18,ink,false);}
+            else if(t==0){Put(15,19,ink,false);Put(16,19,ink,false);Put(17,19,ink,false);Put(18,18,ink,false);}
+            else if(t==1){Put(15,19,mouth,false);Put(16,19,mouth,false);Put(14,20,mouth,false);Put(17,20,mouth,false);}
+            else{Put(15,19,mouth,false);Put(16,19,mouth,false);Put(17,19,mouth,false);}
+            // Near-black outline around the figure, as on every sprite in the game.
+            var outline=new bool[n*n];
+            for(int y=0;y<n;y++)for(int x=0;x<n;x++)
+            {
+                if(body[y*n+x])continue;
+                bool edge=(x>0 && body[y*n+x-1]) || (x<n-1 && body[y*n+x+1]) || (y>0 && body[(y-1)*n+x]) || (y<n-1 && body[(y+1)*n+x]);
+                if(edge)outline[y*n+x]=true;
+            }
+            for(int i=0;i<px.Length;i++)if(outline[i])px[i]=ink;
             return px;
         }
     }

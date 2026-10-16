@@ -49,6 +49,12 @@ Five new 1024×1536 transparent sheets, `equipment_{crew,vest,beanie,leather,emp
 
 `UpgradeVisualChecks` validates all 120 equipment cells and exports desktop/laptop comparisons on an opaque dark background, with five looks across and levels 0–3 down. This makes alpha errors and missing body parts visible during review.
 
-## Scam-den gear
+## One house style for every sprite
 
-`denprops.png` (1280×384) holds the paper shredder, cash counter, police scanner and pallet of cash. Unlike the other atlases it is generated in code, not with image_gen: `Tools/denprops.py` draws each prop at quarter resolution with dark outlines, warm rim highlights and navy-shadowed faces, then upscales 4× with nearest-neighbour sampling. The script prints each sprite rectangle used in `FurnitureCatalog`. Mark portraits on the Scam Board are 16×16 textures built at runtime by `Marks.Portrait`.
+All in-game sprites follow the Pixel Office reference: about 4 source pixels per art pixel, soft rendered shading, a warm key light from the upper left, cream rim highlights on bevels, and near-black outlines. `Tools/pixelstyle.py` samples the reference sheets (furniture, props, stations, crew) for a shared 128-colour palette and the outline colour, so generated and re-processed art reuses them exactly.
+
+- **Den gear** (`denprops.png`, 1280×384): `Tools/denprops.py` builds the paper shredder, cash counter, police scanner and pallet of cash from bevelled boxes and cylinders. It ray-casts them in the game's 2:1 projection, supersamples to art pixels, snaps to the palette, adds inner and outer outlines and upscales 4×. It prints each sprite rectangle and a `FurnitureCatalog` width that keeps the reference density of about 265 source pixels per tile.
+- **Walking crew** (`crew_walking.png`): the frames were drawn about four times finer than the seated crew once scaled into the room. `Tools/walkingcrew.py` snaps each frame to a 10-source-pixel art grid using each block's dominant palette colour (outline pixels win when they're common), darkens the silhouette rim to the outline colour, and scales back up, so texture size and proportions don't change. The untouched original is `Tools/source/crew_walking_original.png`.
+- **Portraits** (marks, Detective Plodd, Vivienne Velvet): `Marks.Portrait` draws 32×32 busts at runtime with three-tone skin and hair, a hair rim light, the same light direction and near-black outlines. They're always drawn at whole-number scales.
+
+Re-run either script after changing the reference palette or the generators: `python Tools/denprops.py`, `python Tools/walkingcrew.py`.

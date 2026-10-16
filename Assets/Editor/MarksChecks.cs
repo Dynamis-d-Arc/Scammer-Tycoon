@@ -19,7 +19,7 @@ public static class MarksChecks
             check(!string.IsNullOrEmpty(a.first) && !string.IsNullOrEmpty(a.last) && !string.IsNullOrEmpty(a.belief),"mark has a name and a belief");
             for(int stage=0;stage<Marks.StageCount;stage++)check(!string.IsNullOrEmpty(Marks.StageLine(alex,a,stage)) && !Marks.StageLine(alex,a,stage).Contains("{"),"hook stage line is filled in");
             check(Marks.Outcome(alex,a,true,220).Contains("$220") && Marks.Outcome(alex,a,false,33).Contains("$33"),"outcome lines include the take");
-            check(Marks.Portrait(a).Length==256,"portrait is 16x16");
+            check(Marks.Portrait(a).Length==Marks.PortraitSize*Marks.PortraitSize && Marks.PortraitSize==32,"portrait is 32x32");
         }
         for(int seed=1;seed<=60;seed++)names.Add(Marks.For(seed,0).Name);
         check(names.Count>=40,"marks vary across runs");

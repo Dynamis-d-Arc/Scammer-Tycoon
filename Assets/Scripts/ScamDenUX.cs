@@ -152,9 +152,10 @@ namespace ScammerTown
             int key=mark.seed*8+mark.job;
             if(portraits.TryGetValue(key,out var texture) && texture!=null)return texture;
             if(portraits.Count>48){foreach(var old in portraits.Values)if(old!=null)Destroy(old);portraits.Clear();}
+            const int n=Marks.PortraitSize;
             var pixels=Marks.Portrait(mark);var flipped=new Color32[pixels.Length];
-            for(int y=0;y<16;y++)for(int x=0;x<16;x++)flipped[(15-y)*16+x]=pixels[y*16+x];
-            texture=new Texture2D(16,16,TextureFormat.RGBA32,false){filterMode=FilterMode.Point,wrapMode=TextureWrapMode.Clamp};
+            for(int y=0;y<n;y++)for(int x=0;x<n;x++)flipped[(n-1-y)*n+x]=pixels[y*n+x];
+            texture=new Texture2D(n,n,TextureFormat.RGBA32,false){filterMode=FilterMode.Point,wrapMode=TextureWrapMode.Clamp};
             texture.SetPixels32(flipped);texture.Apply();portraits[key]=texture;return texture;
         }
         void DrawHookedMarks(Rect area)
@@ -187,7 +188,8 @@ namespace ScammerTown
             Panel(r,new Color(.97f,.96f,.92f));
             var photo=new Rect(r.x+10,r.y+10,r.width-20,86);
             Panel(photo,Marks.TypeColors[mark.typeIndex]*.75f+new Color(0,0,0,.25f));
-            GUI.DrawTexture(new Rect(photo.center.x-40,photo.y+4,80,80),PortraitTexture(mark));
+            // Whole-number scale keeps portrait pixels square.
+            GUI.DrawTexture(new Rect(photo.center.x-32,photo.y+11,64,64),PortraitTexture(mark));
             GUI.Label(new Rect(r.x+10,r.y+99,r.width-20,20),mark.Name,polaroidName);
             GUI.Label(new Rect(r.x+10,r.y+117,r.width-20,18),mark.type+" · "+w.name+" calling",paperSmall);
             GUI.Label(new Rect(r.x+10,r.y+134,r.width-20,32),mark.belief,polaroidBelief);

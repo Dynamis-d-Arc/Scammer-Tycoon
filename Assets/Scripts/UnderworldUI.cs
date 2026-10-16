@@ -48,7 +48,7 @@ namespace ScammerTown
                 var mark=Marks.Current(w);
                 if(mark!=null)
                 {
-                    DrawCallPortrait(new Rect(20,118,120,120),mark);
+                    DrawCallPortrait(new Rect(20,118,104,104),mark);
                     Label(156,118,560,26,mark.Name,heading);
                     Label(156,146,560,22,mark.type+" · "+Marks.TypeBlurbs[mark.typeIndex],small);
                     Label(156,170,560,40,"Currently "+mark.belief+".",small);
@@ -59,7 +59,7 @@ namespace ScammerTown
                 if(Button(20,354,320,"Take the call",blocker==null,44,true))StartCall(w);
                 GUI.EndGroup();return;
             }
-            DrawCallPortrait(new Rect(20,18,100,100),call.mark);
+            DrawCallPortrait(new Rect(20,18,104,104),call.mark);
             Label(146,16,420,26,call.mark.Name,heading);
             Label(146,42,420,20,call.mark.type+" · "+Management.Jobs[call.job].name,small);
             Label(560,18,160,20,"Turn "+Mathf.Min(call.turn+1,TheCall.MaxTurns)+" / "+TheCall.MaxTurns,small);
@@ -101,7 +101,9 @@ namespace ScammerTown
         void DrawCallPortrait(Rect r,Mark mark)
         {
             Panel(r,Marks.TypeColors[Mathf.Clamp(mark.typeIndex,0,Marks.TypeColors.Length-1)]);
-            GUI.DrawTexture(new Rect(r.x+6,r.y+6,r.width-12,r.height-12),PortraitTexture(mark));
+            // Whole-number scale keeps portrait pixels square.
+            float size=Mathf.Max(1,Mathf.Floor((Mathf.Min(r.width,r.height)-8)/Marks.PortraitSize))*Marks.PortraitSize;
+            GUI.DrawTexture(new Rect(r.center.x-size*.5f,r.center.y-size*.5f,size,size),PortraitTexture(mark));
         }
 
         // ---------- Top bar readouts and banners ----------
