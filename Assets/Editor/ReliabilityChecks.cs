@@ -9,6 +9,15 @@ public static class ReliabilityChecks
     {
         int count=0;
         Action<bool,string> check=(ok,message)=>{if(!ok)throw new Exception("RELIABILITY: "+message);count++;};
+        var starter=new Company();RoomLayout.Ensure(starter);
+        check(starter.layout.FindAll(i=>i.placed && !i.GroundCover).Count<=3,"starter room keeps only desk, cooler and plant visible");
+        check(starter.layout.Exists(i=>i.kind=="sofa" && !i.placed && i.manuallyStored),"large starter decor is retained in storage");
+        var starterDesk=starter.layout.Find(i=>i.Station);
+        check(starterDesk.placed && starterDesk.x==1 && starterDesk.y==1,"decluttering preserves the original desk");
+        RoomLayout.Expand(starter);
+        var sofa=starter.layout.Find(i=>i.kind=="sofa");
+        RoomLayout.AutoPlace(starter,sofa);RoomLayout.Ensure(starter);
+        check(sofa.placed,"player can restore stored decor without cleanup running again");
         var s=new TycoonState();s.Current.level=3;s.Current.desktops=2;
         Management.Ensure(s);
         var w=s.Current.workers[0];var desk=s.Current.layout.Find(i=>i.id==w.station);

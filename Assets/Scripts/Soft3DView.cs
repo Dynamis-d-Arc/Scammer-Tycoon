@@ -58,7 +58,9 @@ namespace ScammerTown
         {
             var texture=SoftAsset("furniture");if(texture==null)return false;
             Rect pixels=furniture.pixels;
-            float width=tile*furniture.width,height=width*pixels.height/pixels.width;
+            // Leave visual breathing room around props; their atlas includes tall
+            // silhouettes that otherwise conceal adjacent workstations.
+            float width=tile*furniture.width*(furniture.kind=="rug" ? 1f : .78f),height=width*pixels.height/pixels.width;
             Rect rect=new Rect(anchor.x-width*.5f,anchor.y-height+tile*.06f,width,height);
             if(furniture.kind=="rug")rect.y=anchor.y-height*.5f;
             Rect uv=new Rect(pixels.x/texture.width,1-pixels.yMax/texture.height,pixels.width/texture.width,pixels.height/texture.height);

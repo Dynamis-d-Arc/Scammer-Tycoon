@@ -114,6 +114,22 @@ namespace ScammerTown
                 }
                 if (!Move(company,item,x,y,item.rotation)) AutoPlace(company,item);
             }
+            // The full decorative collection overwhelms a five-tile starter office.
+            // Keep workstations exactly where the player placed them, and retain all
+            // excess furnishings in storage rather than deleting inventory.
+            if(company.furnishingLayoutVersion<1)
+            {
+                company.furnishingLayoutVersion=1;
+                if(company.Size==5)
+                {
+                    foreach(var item in company.layout)
+                    {
+                        if(item.Station || item.kind=="rug" || item.kind=="fridge" || item.id=="plant_0")continue;
+                        item.placed=false;
+                        item.manuallyStored=true;
+                    }
+                }
+            }
         }
         public static Vector2 Project(float x,float y,float tile,Vector2 origin) => origin + new Vector2((x-y)*tile*.5f,(x+y)*tile*.25f);
         public static Vector2 Unproject(Vector2 point,float tile,Vector2 origin)

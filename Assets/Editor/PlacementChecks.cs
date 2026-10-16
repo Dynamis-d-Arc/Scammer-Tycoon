@@ -12,7 +12,7 @@ public static class PlacementChecks
         RoomLayout.Ensure(company);
         check(company.layout.Count==18,"old save migrates equipment and individual furnishings");
         foreach(var item in company.layout)if(FurnitureCatalog.IsFurnishing(item))item.placed=false;
-        check(company.layout.TrueForAll(i=>FurnitureCatalog.IsFurnishing(i) || i.placed),"starter equipment fits while decorations are stored");
+        check(company.layout.TrueForAll(i=>FurnitureCatalog.IsFurnishing(i) || i.placed || i.manuallyStored),"starter equipment fits or remains intentionally stored");
         var desk=company.layout.Find(i=>i.id=="desktop_0");
         var fridge=company.layout.Find(i=>i.id=="fridge");
         var board=company.layout.Find(i=>i.id=="board");
@@ -60,7 +60,7 @@ public static class PlacementChecks
         check(!RoomLayout.HasStationSpace(expanded),"full starter office blocks further shop purchases");
         check(RoomLayout.Expand(expanded) && expanded.Size==10,"expand unlocks 10 by 10 floor");
         check(original.x==oldX && original.y==oldY,"expansion keeps placed furniture positions");
-        check(expanded.layout.TrueForAll(i=>i.placed),"expansion places overflow equipment");
+        check(expanded.layout.TrueForAll(i=>i.placed || i.manuallyStored),"expansion places overflow while respecting stored decor");
         check(RoomLayout.HasStationSpace(expanded),"expanded floor accepts new workstations");
         while(expanded.level<Rules.MaxOfficeLevel)RoomLayout.Expand(expanded);
         check(expanded.Size==100 && expanded.Capacity==2000,"large office reaches 100 by 100");
