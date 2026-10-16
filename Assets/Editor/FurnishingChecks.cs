@@ -5,11 +5,20 @@ using ScammerTown;
 
 public static class FurnishingChecks
 {
+    public static void Stock(Company c)
+    {
+        c.decorations=new System.Collections.Generic.List<DecorationOwned>();
+        foreach(var def in FurnitureCatalog.All)
+        {
+            int count=def.kind=="shelf"?2:def.kind=="plant"?3:1;
+            for(int i=0;i<count;i++)c.decorations.Add(new DecorationOwned{kind=def.kind,id=def.kind=="fridge"||def.kind=="stash"?def.kind:def.kind+"_"+i});
+        }
+    }
     public static int Run()
     {
         int count=0;Action<bool,string> check=(ok,msg)=>{if(!ok)throw new Exception("FURNISHING CHECK FAILED: "+msg);count++;};
         // Legacy layouts keep every owned workstation and its exact position.
-        var company=new Company {level=3};
+        var company=new Company {level=3};Stock(company);
         company.layout=new System.Collections.Generic.List<RoomItem>{new RoomItem {id="desktop_0",kind="desktop",x=6,y=6,rotation=2,placed=true}};
         var desk=company.layout[0];
         company.layout.Add(new RoomItem {id="fridge",kind="fridge",x=3,y=4,rotation=1,placed=true});
@@ -38,13 +47,13 @@ public static class FurnishingChecks
         check(restored.x==10 && restored.y==10 && restored.rotation==1 && restored.placed,"sofa position and rotation survive a save roundtrip");
         check(!loaded.Current.layout.Find(i=>i.id==shelf.id).placed,"shelf storage state survives save roundtrip");
         check(loaded.Current.layout.Count==total,"loading does not regenerate duplicate decorative items");
-        var another=new Company {level=3};RoomLayout.Ensure(another);
+        var another=new Company {level=3};Stock(another);RoomLayout.Ensure(another);
         check(another.layout.Find(i=>i.id==sofa.id).x!=sofa.x,"apartment layouts are independent");
         company.decorUpgrade=2;RoomLayout.Ensure(company);
-        check(company.layout.Exists(i=>i.id=="decorPlant_0") && company.layout.Exists(i=>i.id=="decorPlant_1"),"upgrade plants are movable room items too");
-        var plant=company.layout.Find(i=>i.id=="decorPlant_1");check(RoomLayout.Move(company,plant,13,12,2),"upgrade plant accepts a custom position");
+        check(!company.layout.Exists(i=>i.id=="decorPlant_0"),"morale upgrades do not grant free furniture");
+        var plant=company.layout.Find(i=>i.id=="plant_1");check(RoomLayout.Move(company,plant,13,12,2),"owned plant accepts a custom position");
         RoomLayout.Ensure(company);check(plant.x==13 && plant.y==12 && plant.rotation==2,"upgrade plant stays at the chosen position");
-        var small=new Company {desktops=4};RoomLayout.Ensure(small);
+        var small=new Company {desktops=4};Stock(small);RoomLayout.Ensure(small);
         check(small.layout.FindAll(i=>FurnitureCatalog.IsFurnishing(i)).Count==13,"small offices retain the full furniture inventory");
         check(small.layout.Exists(i=>FurnitureCatalog.IsFurnishing(i) && !i.placed),"overflow furnishings go into storage");
         foreach(var item in small.layout)if(item.placed)

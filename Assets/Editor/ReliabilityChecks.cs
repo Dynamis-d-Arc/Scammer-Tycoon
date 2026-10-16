@@ -10,14 +10,34 @@ public static class ReliabilityChecks
         int count=0;
         Action<bool,string> check=(ok,message)=>{if(!ok)throw new Exception("RELIABILITY: "+message);count++;};
         var starter=new Company();RoomLayout.Ensure(starter);
-        check(starter.layout.FindAll(i=>i.placed && !i.GroundCover).Count<=3,"starter room keeps only desk, cooler and plant visible");
-        check(starter.layout.Exists(i=>i.kind=="sofa" && !i.placed && i.manuallyStored),"large starter decor is retained in storage");
+        check(starter.decorations.Count==0,"starter room has no free decoration inventory");
+        check(!starter.layout.Exists(i=>FurnitureCatalog.Find(i.kind)!=null),"starter does not receive free decorative furniture");
         var starterDesk=starter.layout.Find(i=>i.Station);
         check(starterDesk.placed && starterDesk.x==1 && starterDesk.y==1,"decluttering preserves the original desk");
         RoomLayout.Expand(starter);
-        var sofa=starter.layout.Find(i=>i.kind=="sofa");
+        var purchaseState=new TycoonState();purchaseState.companies[0]=starter;
+        var sofa=FurnitureCatalog.BuyDecoration(purchaseState,"sofa");
+        check(purchaseState.cash==4820-FurnitureCatalog.Price("sofa") && sofa.manuallyStored && !sofa.placed,"decoration purchase charges once and goes to storage");
         RoomLayout.AutoPlace(starter,sofa);RoomLayout.Ensure(starter);
         check(sofa.placed,"player can restore stored decor without cleanup running again");
+        var secondSofa=FurnitureCatalog.BuyDecoration(purchaseState,"sofa");
+        check(secondSofa.id!=sofa.id && starter.decorations.Count==2,"repeat furniture purchases have unique ownership");
+        var purchaseReload=JsonUtility.FromJson<TycoonState>(JsonUtility.ToJson(purchaseState));Management.Ensure(purchaseReload);
+        check(purchaseReload.Current.decorations.Count==2 && purchaseReload.Current.layout.Exists(i=>i.id==secondSofa.id && !i.placed),"purchased storage survives save reload");
+        RoomLayout.Expand(purchaseReload.Current);
+        check(!purchaseReload.Current.layout.Find(i=>i.id==secondSofa.id).placed,"expansion never auto-places purchased storage");
+        purchaseReload.cash=0;
+        check(FurnitureCatalog.BuyDecoration(purchaseReload,"plant")==null && purchaseReload.Current.decorations.Count==2,"insufficient funds grant no furniture");
+        purchaseReload.cash=1000;purchaseReload.paused=true;
+        check(FurnitureCatalog.BuyDecoration(purchaseReload,"plant")==null && purchaseReload.cash==1000,"paused purchase cannot charge");
+        purchaseReload.paused=false;
+        check(FurnitureCatalog.BuyDecoration(purchaseReload,"unknown")==null && purchaseReload.cash==1000,"unknown furniture cannot charge");
+        var legacy=new Company{level=3,layout=new System.Collections.Generic.List<RoomItem>{
+            new RoomItem{id="plant_0",kind="plant",placed=true,x=8,y=8},
+            new RoomItem{id="sofa_0",kind="sofa",placed=false,manuallyStored=true}}};
+        RoomLayout.Ensure(legacy);
+        check(legacy.decorations.Count==1 && legacy.layout.Exists(i=>i.id=="plant_0" && i.x==8 && i.y==8),"migration preserves placed furniture without granting unused starter stock");
+        RoomLayout.Ensure(legacy);check(legacy.decorations.Count==1,"ownership migration is idempotent");
         var s=new TycoonState();s.Current.level=3;s.Current.desktops=2;
         Management.Ensure(s);
         var w=s.Current.workers[0];var desk=s.Current.layout.Find(i=>i.id==w.station);

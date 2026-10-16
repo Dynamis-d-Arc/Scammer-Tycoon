@@ -23,6 +23,7 @@ namespace ScammerTown
         }
         void OpenShop(int page)
         {
+            Management.Ensure(state);
             furnitureStorageOpen=false;CancelPlacement();arrangingRoom=false;workerModal=false;managementPanel=false;
             shopPage=page;shopScroll=Vector2.zero;shopModal=true;
         }
@@ -110,14 +111,14 @@ namespace ScammerTown
             Label(258,137,550,36,"SHOP & RECRUITMENT",title);
             Label(258,181,650,26,"Buying for "+CompanyName+"   ·   "+Money(state.cash)+" available",small);
             if(Button(1084,140,98,"Close",true,36))shopModal=false;
-            string[] names={"Workstations","Office upgrades","Training","Hire employees"};
-            for(int i=0;i<4;i++)
+            string[] names={"Workstations","Office upgrades","Training","Hire employees","Decorations"};
+            for(int i=0;i<names.Length;i++)
             {
                 GUI.backgroundColor=shopPage==i ? accent : Color.white;
                 if(Button(258,232+i*58,190,names[i],true,46)){shopPage=i;shopScroll=Vector2.zero;}
             }
             GUI.backgroundColor=Color.white;
-            Label(258,505,184,70,"Work continues while you browse. Purchases apply to this office.",small);
+            Label(258,550,184,70,"Work continues while you browse. Purchases apply to this office.",small);
             if(state.incidentCompany>=0)
             {
                 Label(258,584,190,48,"Connection alert · "+Mathf.CeilToInt(state.incidentCountdown)+"s",body);

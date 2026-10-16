@@ -17,6 +17,7 @@ namespace ScammerTown
         public float earned, lockdown;
         public bool heatWarned;
         public int furnishingLayoutVersion;
+        public List<DecorationOwned> decorations;
         public int Size => level * 5;
         public int Capacity => Size * Size / 5;
         public int Stations => desktops + laptops;

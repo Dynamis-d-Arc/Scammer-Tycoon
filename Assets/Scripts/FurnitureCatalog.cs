@@ -3,6 +3,10 @@ using UnityEngine;
 
 namespace ScammerTown
 {
+    [System.Serializable] public class DecorationOwned
+    {
+        public string id, kind;
+    }
     public sealed class FurnitureDefinition
     {
         public readonly string kind, name;
@@ -34,14 +38,39 @@ namespace ScammerTown
         public static bool IsFurnishing(RoomItem item) => item!=null && Find(item.kind)!=null && item.kind!="stash" && item.kind!="fridge";
         public static void AddOwned(Dictionary<string,string> desired,Company company)
         {
-            desired.Add("sofa_0","sofa");
-            desired.Add("shelf_0","shelf");desired.Add("shelf_1","shelf");
-            desired.Add("lamp_0","lamp");
-            desired.Add("plant_0","plant");desired.Add("plant_1","plant");desired.Add("plant_2","plant");
-            desired.Add("coffee_0","coffee");desired.Add("sideboard_0","sideboard");
-            desired.Add("rug_0","rug");desired.Add("boxes_0","boxes");
-            desired.Add("bin_0","bin");desired.Add("radiator_0","radiator");
-            for(int i=0;i<company.decorUpgrade;i++)desired.Add("decorPlant_"+i,"plant");
+            if(company.decorations==null)
+            {
+                company.decorations=new List<DecorationOwned>();
+                // Grandfather placed decorations; unused automatic starter stock is not owned.
+                foreach(var item in company.layout)
+                    if(item!=null && item.id!=null && item.placed && Find(item.kind)!=null && !company.decorations.Exists(d=>d.id==item.id))
+                        company.decorations.Add(new DecorationOwned{id=item.id,kind=item.kind});
+            }
+            foreach(var item in company.decorations)
+                if(item!=null && !string.IsNullOrEmpty(item.id) && Find(item.kind)!=null && !desired.ContainsKey(item.id))desired.Add(item.id,item.kind);
+        }
+        public static int Price(string kind)
+        {
+            switch(kind)
+            {
+                case "sofa":return 450; case "shelf":return 250; case "lamp":return 120;
+                case "plant":return 80; case "coffee":return 180; case "sideboard":return 280;
+                case "rug":return 150; case "boxes":return 40; case "stash":return 200;
+                case "fridge":return 220; case "bin":return 40; case "radiator":return 180;
+                default:return 0;
+            }
+        }
+        public static RoomItem BuyDecoration(TycoonState state,string kind)
+        {
+            int price=Price(kind);
+            if(state.paused || price<=0 || state.cash<price)return null;
+            var company=state.Current;RoomLayout.Ensure(company);
+            if(!Rules.Pay(state,price))return null;
+            string id="decoration-"+System.Guid.NewGuid().ToString("N");
+            company.decorations.Add(new DecorationOwned{id=id,kind=kind});
+            var item=new RoomItem{id=id,kind=kind,placed=false,manuallyStored=true};
+            company.layout.Add(item);
+            return item;
         }
         public static Vector2Int InitialPosition(RoomItem item,Company company)
         {

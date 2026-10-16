@@ -86,7 +86,7 @@ namespace ScammerTown
         public static void Ensure(Company company)
         {
             if (company.layout == null) company.layout = new List<RoomItem>();
-            var desired = new Dictionary<string, string> { {"board","board"}, {"fridge","fridge"}, {"stash","stash"} };
+            var desired = new Dictionary<string, string> { {"board","board"} };
             if (company.burners > 0) desired.Add("phones", "phones");
             for (int i = 0; i < company.desktops; i++) desired.Add("desktop_" + i, "desktop");
             for (int i = 0; i < company.laptops; i++) desired.Add("laptop_" + i, "laptop");

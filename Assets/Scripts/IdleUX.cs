@@ -56,6 +56,27 @@ namespace ScammerTown
         {
             switch(shopPage)
             {
+                case 4:
+                    Text("DECORATIONS");
+                    Text("Buy for this office, then place from Storage. Decorative furniture is cosmetic; morale upgrades are sold separately.",true);
+                    Action("Open Storage",OpenFurnitureStorage);
+                    foreach(var furniture in FurnitureCatalog.All)
+                    {
+                        Rect preview=GUILayoutUtility.GetRect(220,150);
+                        Panel(preview,new Color(.1f,.13f,.19f));
+                        GUI.BeginGroup(preview);SoftSprite(furniture.kind+"_0",new Vector2(preview.width*.5f,140),48);GUI.EndGroup();
+                        int cost=FurnitureCatalog.Price(furniture.kind);
+                        Text(furniture.name+" · "+furniture.footprint.x+" × "+furniture.footprint.y+" tiles");
+                        Text("Owned here: "+C.decorations.FindAll(d=>d.kind==furniture.kind).Count,true);
+                        Action("Buy to Storage · "+Money(cost),()=>
+                        {
+                            var item=FurnitureCatalog.BuyDecoration(state,furniture.kind);
+                            if(item==null)return;
+                            Save();PlayFeedback(false);Notify("Bought "+item.Name+". Open Storage to place it.");
+                        },CanAct && state.cash>=cost);
+                        Space();
+                    }
+                    Action("Open Storage",OpenFurnitureStorage);break;
                 case 0:
                     Text("WORKSTATIONS");
                     Text("A complete desk, computer, keyboard and chair. Each uses 2 × 2 floor tiles.",true);

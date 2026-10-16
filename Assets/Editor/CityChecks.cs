@@ -26,6 +26,7 @@ public static class CityChecks
         s.Current.heat=73;s.Current.employeeTier=4;s.Current.ai=true;s.cycle=8;
         RoomLayout.Ensure(s.Current);
         foreach(var item in s.Current.layout)if(FurnitureCatalog.IsFurnishing(item))item.placed=false;
+        FurnishingChecks.Stock(s.Current);RoomLayout.Ensure(s.Current);
         var fridge=s.Current.layout.Find(i=>i.id=="fridge");RoomLayout.Move(s.Current,fridge,3,4,1);
         check(Rules.VisitApartment(s,1) && s.active==1 && s.neon,"visit switches apartment and theme");
         check(s.companies[0].ai && s.cycle==0,"leaving preserves background automation and resets legacy cycle");

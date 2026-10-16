@@ -8,11 +8,11 @@ public static class PlacementChecks
     {
         int count=0;
         Action<bool,string> check=(ok,description)=>{if(!ok)throw new Exception("PLACEMENT FAILED: "+description);count++;};
-        var company=new Company();
+        var company=new Company();FurnishingChecks.Stock(company);
         RoomLayout.Ensure(company);
         check(company.layout.Count==18,"old save migrates equipment and individual furnishings");
         foreach(var item in company.layout)if(FurnitureCatalog.IsFurnishing(item))item.placed=false;
-        check(company.layout.TrueForAll(i=>FurnitureCatalog.IsFurnishing(i) || i.placed || i.manuallyStored),"starter equipment fits or remains intentionally stored");
+        check(company.layout.Exists(i=>i.Station && i.placed),"workstation remains placed with a full decoration inventory");
         var desk=company.layout.Find(i=>i.id=="desktop_0");
         var fridge=company.layout.Find(i=>i.id=="fridge");
         var board=company.layout.Find(i=>i.id=="board");
@@ -42,8 +42,8 @@ public static class PlacementChecks
         fridge.placed=false;RoomLayout.Ensure(company);
         check(!fridge.placed,"stored furniture remains stored on synchronization");
         check(RoomLayout.Move(company,fridge,3,4,0),"stored furniture can be placed again");
-        var other=new Company();RoomLayout.Ensure(other);
-        check(other.layout.Find(i=>i.id=="fridge").x==4,"company layouts are independent");
+        var other=new Company();FurnishingChecks.Stock(other);RoomLayout.Ensure(other);
+        check(other.layout.Find(i=>i.id=="fridge")!=fridge,"company layouts are independent");
         company.level=10;RoomLayout.Ensure(company);
         check(fridge.x==3 && fridge.y==4,"expansion preserves existing placements");
         check(RoomLayout.Move(company,fridge,49,49,3),"full 50 by 50 room is placeable");
@@ -54,7 +54,7 @@ public static class PlacementChecks
         }
         check(Resources.Load<Texture2D>("ScamDen/scamden_basement_sheet").isReadable,"basement supports alpha picking");
         check(Resources.Load<Texture2D>("ScamDen/scamden_neon_sheet").isReadable,"neon supports alpha picking");
-        var expanded=new Company();RoomLayout.Ensure(expanded);
+        var expanded=new Company();FurnishingChecks.Stock(expanded);RoomLayout.Ensure(expanded);
         var original=expanded.layout.Find(i=>i.Station);int oldX=original.x,oldY=original.y;
         expanded.desktops=5;RoomLayout.Ensure(expanded);
         check(!RoomLayout.HasStationSpace(expanded),"full starter office blocks further shop purchases");

@@ -65,7 +65,7 @@ namespace ScammerTown
             UpgradeButton("Computers",C.computerUpgrade,450,"12% faster jobs per level; brighter desk trim",()=>C.computerUpgrade++);
             UpgradeButton("Chairs",C.comfortUpgrade,300,"4% faster jobs per level; upholstered seats",()=>C.comfortUpgrade++);
             UpgradeButton("Lighting",C.lightingUpgrade,250,"5% faster jobs per level; lit floor borders",()=>C.lightingUpgrade++);
-            UpgradeButton("Décor",C.decorUpgrade,200,"Morale recovery; plants around the room",()=>C.decorUpgrade++);
+            UpgradeButton("Décor",C.decorUpgrade,200,"Morale recovery; decorative furniture sold separately",()=>C.decorUpgrade++);
         }
         void UpgradeButton(string name,int level,int unitCost,string benefit,System.Action upgrade)
         {
